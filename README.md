@@ -76,6 +76,12 @@ torchrun --nproc_per_node=8 \
    ++cluster_type=BCP
 ```
 
+The output of this command lives at `/models/results/checkpoints/megatron_gpt_sft.nemo` in the s3 bucket.
+
+```
+s3://release-ry6clz-static-builds/ai-models-tmp/results/checkpoints/megatron_gpt_sft.nemo
+```
+
 [PEFT Tutorial](https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2peft.html)
 
 Current PEFT command:
@@ -135,7 +141,7 @@ echo \
   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 apt-get update
-apt-get install -y --reinstall make docker-ce
+apt-get install -y --reinstall make docker-ce git-lfs
 git clone https://github.com/NVIDIA/TensorRT-LLM.git
 cd TensorRT-LLM
 git submodule update --init --recursive
@@ -151,3 +157,86 @@ The [Jupyter notebook](https://app.release.com/admin/apps/8117/environments) is 
 
 The [Triton inference](https://app.release.com/admin/apps/8107/environments) server will provide an endpoint for the Chatbot. Currently need to get TensorRT-LLM compiled in a docker image to be able to use it. Ref: https://github.com/triton-inference-server/tensorrtllm_backend/blob/main/README.md
 
+## Tips
+
+Monitor GPU status with
+```
+while true; do nvidia-smi && sleep 5; done
+```
+
+## Compile the model
+
+Docs: https://github.com/NVIDIA/TensorRT-LLM/tree/release/0.5.0/examples/llama
+
+From within the TensorRT-LLM docker image
+
+```
+663072083902.dkr.ecr.us-west-2.amazonaws.com/awesome-release/tensorrt-llm/tensorrtllm:latest
+```
+
+
+```
+python examples/llama/build.py --model_dir ./Llama-2-7b-hf/ \
+                --dtype float16 \
+                --remove_input_padding \
+                --use_gpt_attention_plugin float16 \
+                --enable_context_fmha \
+                --use_gemm_plugin float16 \
+                --output_dir ./trt_engines-fp16-4-gpu/ \
+                --world_size 4 \
+                --tp_size 2 \
+                --pp_size 2 \
+                --use_inflight_batching \
+                --paged_kv_cache
+```
+
+### Test the model via TensorRT-LLM
+
+```
+mpirun -n 4 --allow-run-as-root \
+python3 examples/llama/run.py \
+--engine_dir=trt_engines-fp16-4-gpu \
+--max_output_len 100 \
+--tokenizer_dir ./Llama-2-7b-hf/ \
+--input_text "What is ReleaseHub.com"
+```
+
+## Run the model via Triton
+```
+cd tensorrtllm_backend
+cp ../TensorRT-LLM/trt_engines-fp16-4-gpu/*   all_models/inflight_batcher_llm/tensorrt_llm/1/
+python3 tools/fill_template.py --in_place \
+      all_models/inflight_batcher_llm/tensorrt_llm/config.pbtxt \
+      decoupled_mode:true,engine_dir:/all_models/inflight_batcher_llm/tensorrt_llm/1,\
+max_tokens_in_paged_kv_cache:,batch_scheduler_policy:guaranteed_completion,kv_cache_free_gpu_mem_fraction:0.2,\
+max_num_sequences:4
+ 
+python3 tools/fill_template.py --in_place \
+    all_models/inflight_batcher_llm/preprocessing/config.pbtxt \
+    tokenizer_type:llama,tokenizer_dir:meta-llama/Llama-2-7b-chat-hf
+ 
+python3 tools/fill_template.py --in_place \
+    all_models/inflight_batcher_llm/postprocessing/config.pbtxt \
+    tokenizer_type:llama,tokenizer_dir:meta-llama/Llama-2-7b-chat-hf
+
+docker run -it --rm --gpus all --network host --shm-size=1g \
+-v $(pwd)/all_models:/all_models \
+-v $(pwd)/scripts:/opt/scripts \
+nvcr.io/nvidia/tritonserver:23.10-trtllm-python-py3
+
+huggingface-cli login
+
+pip install sentencepiece protobuf
+
+python /opt/scripts/launch_triton_server.py --model_repo /all_models/inflight_batcher_llm --world_size 4
+
+curl -X POST localhost:8000/v2/models/ensemble/generate -d \
+'{
+"text_input": "What is ReleaseHub.com",
+"parameters": {
+"max_tokens": 100,
+"bad_words":[""],
+"stop_words":[""]
+}
+}'
+```
