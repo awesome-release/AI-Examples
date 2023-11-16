@@ -167,6 +167,8 @@ https://developer.nvidia.com/blog/optimizing-inference-on-llms-with-tensorrt-llm
 # Other Release AI Apps
 These are other Release apps you can use to interact with the models.
 
+The [NeMo launcher](https://app.release.com/admin/apps/8118/environments) app is for runing SFT and PEFT jobs.
+
 The [Jupyter notebook](https://app.release.com/admin/apps/8117/environments) is good for testing. You can run things like https://github.com/facebookresearch/llama-recipes/blob/main/demo_apps/HelloLlamaLocal.ipynb or ReleaseLlama.ipynb in this repository. 
 
 The [Triton inference](https://app.release.com/admin/apps/8107/environments) server will provide an endpoint for the Chatbot. Currently need to get TensorRT-LLM compiled in a docker image to be able to use it. Ref: https://github.com/triton-inference-server/tensorrtllm_backend/blob/main/README.md
