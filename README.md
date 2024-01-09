@@ -30,6 +30,8 @@ release.pdf - Release docs for fine tuning
 These articles are the latest tutorials on running training.
 [SFT Tutorial](https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2sft.html)
 
+## SFT
+
 Current SFT command:
 ```
 
@@ -95,6 +97,7 @@ The output of this command lives at `/models/results/checkpoints/megatron_gpt_sf
 ```
 s3://release-ry6clz-static-builds/ai-models-tmp/results/checkpoints/megatron_gpt_sft.nemo
 ```
+## PEFT
 
 [PEFT Tutorial](https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2peft.html)
 
@@ -135,6 +138,11 @@ torchrun --nproc_per_node=4 \
 ```
 
 To run fine tuning, spin up an env for the [Nemo app in release](https://app.release.com/admin/apps/8118/environments).
+
+## RAG
+
+For Retrieval Augmented Generation, reference is here https://github.com/NVIDIA/GenerativeAIExamples/tree/main/RetrievalAugmentedGeneration/
+
 ### Cleanup
 When you're done, if you want to save the new model state back to S3, reverse the `aws s3 sync` command from above. 
 
@@ -145,7 +153,7 @@ aws s3 sync /models/ s3://release-ry6clz-static-builds/ai-models-tmp/
 Also be sure to delete your Env when done with fine tuning and/or testing. They are costly.
 
 # TensorRT-LLM (Training Server)
-Building tensorrt-llm so we can serve our models. 
+Building tensorrt-llm so we can train our models.
 Spin up a g5 instance.
 ```
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
