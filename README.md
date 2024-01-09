@@ -144,7 +144,7 @@ aws s3 sync /models/ s3://release-ry6clz-static-builds/ai-models-tmp/
 
 Also be sure to delete your Env when done with fine tuning and/or testing. They are costly.
 
-# TensorRT-LLM
+# TensorRT-LLM (Inference Server)
 Building tensorrt-llm so we can serve our models. 
 Spin up a g5 instance.
 ```
@@ -212,7 +212,7 @@ python examples/llama/build.py --model_dir ./Llama-2-7b-hf/ \
 
 ```
 mpirun -n 4 --allow-run-as-root \
-python3 examples/llama/run.py \
+python3 examples/llama/run.py\
   --engine_dir=trt_engines-fp16-4-gpu \
   --max_output_len 100 \
   --tokenizer_dir ./Llama-2-7b-hf/ \
@@ -247,7 +247,11 @@ huggingface-cli login
 pip install sentencepiece protobuf
 
 python /opt/scripts/launch_triton_server.py --model_repo /all_models/inflight_batcher_llm --world_size 4
+```
 
+## Query the model
+
+```
 curl -X POST localhost:8000/v2/models/ensemble/generate -d \
 '{
 "text_input": "What is ReleaseHub.com",
