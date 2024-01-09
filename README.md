@@ -14,17 +14,17 @@ Currently contains multiple models for testing. You can also only grab what you 
 
 #### s3 Bucket
 
-Llama-2-7b-hf/ - https://huggingface.co/meta-llama/Llama-2-7b-hf
-databricks-dolly-15k/ - Example fine tuning data set. Used with https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2sft.html
-llama-recipes/ - https://github.com/facebookresearch/llama-recipes/
-llama.cpp/ - https://github.com/ggerganov/llama.cpp
-nemo_experiments/ - Fine tuning outputs
-pubmedqa/ - Example fine tuning data set. Used with https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2peft.html
-results/
-trt_engines-fp16-4-gpu/ - Engine built from Llama-2-7b-hf following https://developer.nvidia.com/blog/optimizing-inference-on-llms-with-tensorrt-llm-now-publicly-available/
-ReleaseLlama.ipynb - Example jupyter notebook
-llama-2-7b-hf.nemo - Nemo formatted model
-release.pdf - Release docs for fine tuning
+* Llama-2-7b-hf/ - https://huggingface.co/meta-llama/Llama-2-7b-hf
+* databricks-dolly-15k/ - Example fine tuning data set. Used with https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2sft.html
+* llama-recipes/ - https://github.com/facebookresearch/llama-recipes/
+* llama.cpp/ - https://github.com/ggerganov/llama.cpp
+* nemo_experiments/ - Fine tuning outputs
+* pubmedqa/ - Example fine tuning data set. Used with https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2peft.html
+* results/
+* trt_engines-fp16-4-gpu/ - Engine built from Llama-2-7b-hf following https://developer.nvidia.com/blog/optimizing-inference-on-llms-with-tensorrt-llm-now-publicly-available/
+* ReleaseLlama.ipynb - Example jupyter notebook
+* llama-2-7b-hf.nemo - Nemo formatted model
+* release.pdf - Release docs for RAG
 
 ### Run Fine Tuning
 These articles are the latest tutorials on running training.
