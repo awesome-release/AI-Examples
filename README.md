@@ -144,7 +144,7 @@ aws s3 sync /models/ s3://release-ry6clz-static-builds/ai-models-tmp/
 
 Also be sure to delete your Env when done with fine tuning and/or testing. They are costly.
 
-# TensorRT-LLM (Inference Server)
+# TensorRT-LLM (Training Server)
 Building tensorrt-llm so we can serve our models. 
 Spin up a g5 instance.
 ```
