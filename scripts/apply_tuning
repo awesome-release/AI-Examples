@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+
+import argparse
+from nemo.collections.nlp.models.language_modeling.megatron_gpt_model import MegatronGPTModel
+
+def main(base_model_path, checkpoint_path, output_path):
+    # Load the base model
+    base_model = MegatronGPTModel.restore_from(base_model_path)
+
+    # Load the fine-tuned checkpoint
+    fine_tuned_model = MegatronGPTModel.load_from_checkpoint(checkpoint_path)
+
+    # Update base model with fine-tuned weights
+    base_model.load_state_dict(fine_tuned_model.state_dict())
+
+    # Save the updated model as a new .nemo file
+    base_model.save_to(output_path)
+    print(f"New model saved as {output_path}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Combine base model and fine-tuned checkpoint into a new .nemo file")
+
+    parser.add_argument("--base_model_path", type=str, required=True, help="Path to the base model .nemo file")
+    parser.add_argument("--checkpoint_path", type=str, required=True, help="Path to the fine-tuned checkpoint .ckpt file")
+    parser.add_argument("--output_path", type=str, required=True, help="Name for the output .nemo file")
+
+    args = parser.parse_args()
+
+    main(args.base_model_path, args.checkpoint_path, args.output_path)

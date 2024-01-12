@@ -19,6 +19,7 @@ export NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
 
 export CHECKPOINTS_PATH=/workspace/nemo_experiments/megatron_gpt_peft_tuning/checkpoints
 export FINE_TUNED_CHECKPOINTS_PATH=/bucket/ai-models-tmp/fine-tuned-checkpoints
+export FINE_TUNED_CHECKPOINT_FILE=fine_tuned_checkpoint.nemo
 
 # Default options
 PEFT_OPTIONS="
@@ -51,4 +52,5 @@ echo torchrun \
   $PEFT_TUNING_SCRIPT \
   $PEFT_OPTIONS
 
-# cp $CHECKPOINTS_PATH/megatron_gpt_peft_tuning.nemo $FINE_TUNED_CHECKPOINTS_PATH/megatron_gpt_peft_tuning.nemo
+mkdir -p $FINE_TUNED_CHECKPOINT_PATH
+cp $CHECKPOINTS_PATH/megatron_gpt_peft_tuning.nemo $FINE_TUNED_CHECKPOINT_PATH/$FINE_TUNED_CHECKPOINT_FILE

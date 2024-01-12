@@ -1,0 +1,18 @@
+#!/bin/bash
+
+TRITON_DEPLOY_SCRIPT_PATH=${TRITON_DEPLOY_SCRIPT_PATH:-"/opt/NeMo/scripts/deploy/deploy_triton.py"}
+CHECKPOINTS_PATH=${CHECKPOINTS_PATH:-"/bucket/ai-models-tmp/nemo_experiments/megatron_gpt_peft_tuning/checkpoints"}
+CHECKPOINT_NAME=${CHECKPOINT_NAME:-"megatron_gpt_peft_tuning.nemo"}
+NEMO_CHECKPOINT=${NEMO_CHECKPOINT:-"${CHECKPOINTS_PATH}/${CHECKPOINT_NAME}"}
+TRITON_MODEL_NAME=${TRITON_MODEL_NAME:-"release-fine-tuned-peft"}
+
+if [ ! -f ${NEMO_CHECKPOINT} ]; then
+  echo "Checkpoint not found: ${NEMO_CHECKPOINT}"
+  exit 1
+fi
+
+python \
+  ${TRITON_DEPLOY_SCRIPT_PATH} \
+  --nemo_checkpoint ${NEMO_CHECKPOINT} \
+  --model_type="llama" \
+  --triton_model_name ${TRITON_MODEL_NAME}
