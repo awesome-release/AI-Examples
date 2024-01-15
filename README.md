@@ -1,7 +1,9 @@
 # AI-Examples
 
 ## Fine Tuning
+
 ### Acquire models
+
 From a shell within the Nemo app, copy the models from s3 to /models
 
 These are pre-downloaded and formatted for Nemo consumption, and also include pre-processed fine tuning datasets. Directions on how this was done are in the SFT and PEFT tutorial links below.
@@ -14,25 +16,27 @@ Currently contains multiple models for testing. You can also only grab what you 
 
 #### s3 Bucket
 
-* Llama-2-7b-hf/ - https://huggingface.co/meta-llama/Llama-2-7b-hf
-* databricks-dolly-15k/ - Example fine tuning data set. Used with https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2sft.html
-* llama-recipes/ - https://github.com/facebookresearch/llama-recipes/
-* llama.cpp/ - https://github.com/ggerganov/llama.cpp
-* nemo_experiments/ - Fine tuning outputs
-* pubmedqa/ - Example fine tuning data set. Used with https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2peft.html
-* results/
-* trt_engines-fp16-4-gpu/ - Engine built from Llama-2-7b-hf following https://developer.nvidia.com/blog/optimizing-inference-on-llms-with-tensorrt-llm-now-publicly-available/
-* ReleaseLlama.ipynb - Example jupyter notebook
-* llama-2-7b-hf.nemo - Nemo formatted model
-* release.pdf - Release docs for RAG
+- Llama-2-7b-hf/ - https://huggingface.co/meta-llama/Llama-2-7b-hf
+- databricks-dolly-15k/ - Example fine tuning data set. Used with https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2sft.html
+- llama-recipes/ - https://github.com/facebookresearch/llama-recipes/
+- llama.cpp/ - https://github.com/ggerganov/llama.cpp
+- nemo_experiments/ - Fine tuning outputs
+- pubmedqa/ - Example fine tuning data set. Used with https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2peft.html
+- results/
+- trt_engines-fp16-4-gpu/ - Engine built from Llama-2-7b-hf following https://developer.nvidia.com/blog/optimizing-inference-on-llms-with-tensorrt-llm-now-publicly-available/
+- ReleaseLlama.ipynb - Example jupyter notebook
+- llama-2-7b-hf.nemo - Nemo formatted model
+- release.pdf - Release docs for RAG
 
 ### Run Fine Tuning
+
 These articles are the latest tutorials on running training.
 [SFT Tutorial](https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2sft.html)
 
 ## SFT
 
 Current SFT command:
+
 ```
 
 export CONCAT_SAMPLING_PROBS="[1]"
@@ -97,11 +101,13 @@ The output of this command lives at `/models/results/checkpoints/megatron_gpt_sf
 ```
 s3://release-ry6clz-static-builds/ai-models-tmp/results/checkpoints/megatron_gpt_sft.nemo
 ```
+
 ## PEFT
 
 [PEFT Tutorial](https://docs.nvidia.com/nemo-framework/user-guide/latest/playbooks/llama2peft.html)
 
 Current PEFT command:
+
 ```
 export CONCAT_SAMPLING_PROBS="[1]"
 export TP_SIZE=4
@@ -144,7 +150,8 @@ To run fine tuning, spin up an env for the [Nemo app in release](https://app.rel
 For Retrieval Augmented Generation, reference is here https://github.com/NVIDIA/GenerativeAIExamples/tree/main/RetrievalAugmentedGeneration/
 
 ### Cleanup
-When you're done, if you want to save the new model state back to S3, reverse the `aws s3 sync` command from above. 
+
+When you're done, if you want to save the new model state back to S3, reverse the `aws s3 sync` command from above.
 
 ```
 aws s3 sync /models/ s3://release-ry6clz-static-builds/ai-models-tmp/
@@ -153,8 +160,10 @@ aws s3 sync /models/ s3://release-ry6clz-static-builds/ai-models-tmp/
 Also be sure to delete your Env when done with fine tuning and/or testing. They are costly.
 
 # TensorRT-LLM (Training Server)
+
 Building tensorrt-llm so we can train our models.
 Spin up a g5 instance.
+
 ```
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
@@ -173,6 +182,7 @@ make -C docker release_build
 https://developer.nvidia.com/blog/optimizing-inference-on-llms-with-tensorrt-llm-now-publicly-available/
 
 # Other Release AI Apps
+
 These are other Release apps you can use to interact with the models.
 
 The [Jupyter notebook](https://app.release.com/admin/apps/8117/environments) is good for testing. You can run things like https://github.com/facebookresearch/llama-recipes/blob/main/demo_apps/HelloLlamaLocal.ipynb or ReleaseLlama.ipynb in this repository.
@@ -186,6 +196,7 @@ The [Triton inference](https://app.release.com/admin/apps/8107/environments) ser
 ## Tips
 
 Monitor GPU status with
+
 ```
 while true; do nvidia-smi && sleep 5; done
 ```
@@ -199,7 +210,6 @@ From within the TensorRT-LLM docker image
 ```
 663072083902.dkr.ecr.us-west-2.amazonaws.com/awesome-release/tensorrt-llm/tensorrtllm:latest
 ```
-
 
 ```
 python examples/llama/build.py --model_dir ./Llama-2-7b-hf/ \
@@ -228,6 +238,7 @@ python3 examples/llama/run.py\
 ```
 
 ## Run the model via Triton
+
 ```
 cd tensorrtllm_backend
 
@@ -269,4 +280,19 @@ curl -X POST localhost:8000/v2/models/ensemble/generate -d \
 "stop_words":[""]
 }
 }'
+```
+
+## Apply fine tuning to base model (not working yet)
+
+```
+./apply_tuning \
+  --base_model_path /bucket/ai-models-tmp/llama-2-7b-hf.nemo \
+  --checkpoint_path /bucket/ai-models-tmp/nemo_experiments/megatron_gpt_peft_tuning/checkpoints/megatron_gpt_peft_tuning.nemo \
+  --output_path llama-fine-tuned.nemo
+```
+
+## Start Triton with Llama base model
+
+```
+NEMO_CHECKPOINT=/bucket/ai-models-tmp/llama-2-7b-hf.nemo ./start_triton
 ```

@@ -1,0 +1,116 @@
+---
+auto_deploy: false
+context: release-ry6clz
+domain: ai-playground.releaseapp.io
+repo_name: Draiken/AI-Examples
+hostnames:
+  - nemo-inference: nemo-${env_id}.${domain}
+resources:
+  cpu:
+    limits: 24
+    requests: 12
+  memory:
+    limits: 64Gi
+    requests: 16Gi
+  replicas: 1
+shared_volumes:
+  - name: tmp
+    size: 20Gi
+    type: persistent
+jobs:
+  - name: peft-tuning
+    command:
+      - "/bin/peft_tuning"
+    from_services: nemo-training
+    completed_timeout: 5400
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - type: s3
+        bucket: release-ry6clz-static-builds
+        mount_path: "/bucket"
+services:
+  - name: nemo-training
+    image: draiken/ai-examples/nemo-training
+    build:
+      context: "."
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+      - type: s3
+        bucket: release-ry6clz-static-builds
+        mount_path: "/bucket"
+    cpu:
+      limits: 24
+      requests: 12
+    memory:
+      limits: 64Gi
+      requests: 16Gi
+  - name: nemo-inference
+    image: nvcr.io/ea-bignlp/ga-participants/nemofw-inference:23.10
+    has_repo: false
+    command:
+      - python
+      - "/opt/NeMo/scripts/deploy/deploy_triton.py"
+      - "--nemo_checkpoint"
+      - "/bucket/ai-models-tmp/llama-2-7b-hf.nemo"
+      - "--model_type"
+      - llama
+      - "--triton_model_name"
+      - release-model
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+      - type: s3
+        bucket: release-ry6clz-static-builds
+        mount_path: "/bucket"
+    cpu:
+      limits: 24
+      requests: 8
+    memory:
+      limits: 64Gi
+      requests: 16Gi
+s3_volumes:
+  - bucket: release-ry6clz-static-builds
+    region: us-west-2
+workflows:
+  - name: setup
+    parallelize:
+      - step: fine-tuning
+        tasks:
+          - jobs.peft-tuning
+        halt_on_error: true
+        wait_for_finish: true
+      - step: inference
+        tasks:
+          - services.nemo-inference
+  - name: patch
+    parallelize:
+      - step: inference
+        tasks:
+          - services.nemo-inference
+  - name: teardown
+    parallelize:
+      - step: remove-environment
+        tasks:
+          - release.remove_environment
+tracking_branch: peft
