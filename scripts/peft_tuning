@@ -20,7 +20,7 @@ export NVTE_FUSED_ATTN="${NVTE_FUSED_ATTN:-0}"
 export NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
 
 export CHECKPOINTS_PATH=/workspace/nemo_experiments/megatron_gpt_peft_tuning/checkpoints
-export FINE_TUNED_CHECKPOINT_PATH=${MODELS_ROOT_PATH}/fine-tuned-checkpoints/fine_tuned_checkpoint.nemo
+export FINE_TUNED_CHECKPOINT_PATH=${FINE_TUNED_CHECKPOINT_PATH:-${MODELS_ROOT_PATH}/fine-tuned-checkpoints/fine_tuned_checkpoint.nemo}
 
 echo "Fine tuning with:"
 
