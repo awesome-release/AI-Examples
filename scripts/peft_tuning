@@ -69,8 +69,6 @@ torchrun \
   $PEFT_TUNING_SCRIPT \
   $PEFT_OPTIONS
 
-if 
-
 CHECKPOINT_PATH=$CHECKPOINTS_PATH/megatron_gpt_peft_tuning.nemo
 
 if [ ! -f $CHECKPOINT_PATH ]; then
