@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 MODELS_ROOT_PATH=${MODELS_ROOT_PATH:-"/bucket/ai-models-tmp"}
 
 # Setting default values for environment variables if not already set
@@ -19,6 +21,22 @@ export NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
 
 export CHECKPOINTS_PATH=/workspace/nemo_experiments/megatron_gpt_peft_tuning/checkpoints
 export FINE_TUNED_CHECKPOINT_PATH=${MODELS_ROOT_PATH}/fine-tuned-checkpoints/fine_tuned_checkpoint.nemo
+
+echo "Fine tuning with:"
+
+echo "Model: $MODEL"
+echo "Training dataset: $TRAIN_DS"
+echo "Validation dataset: $VALID_DS"
+echo "Test dataset: $TEST_DS"
+echo "Test names: $TEST_NAMES"
+echo "Scheme: $SCHEME"
+echo "TP size: $TP_SIZE"
+echo "PP size: $PP_SIZE"
+echo "Concat sampling probabilities: $CONCAT_SAMPLING_PROBS"
+echo "NVTE flash attention: $NVTE_FLASH_ATTN"
+echo "NVTE fused attention: $NVTE_FUSED_ATTN"
+echo "NPROC per node: $NPROC_PER_NODE"
+echo "Fine tuned checkpoint output path: $FINE_TUNED_CHECKPOINT_PATH"
 
 # Default options
 PEFT_OPTIONS="
@@ -51,9 +69,18 @@ torchrun \
   $PEFT_TUNING_SCRIPT \
   $PEFT_OPTIONS
 
-echo "Copying fine-tuned checkpoint to $FINE_TUNED_CHECKPOINT_PATH"
+if 
+
+CHECKPOINT_PATH=$CHECKPOINTS_PATH/megatron_gpt_peft_tuning.nemo
+
+if [ ! -f $CHECKPOINT_PATH ]; then
+  echo "Error fine tuning: Checkpoint not found at $CHECKPOINT_PATH"
+  exit 1
+fi
+
+echo "Copying fine-tuned checkpoint $CHECKPOINT_PATH to $FINE_TUNED_CHECKPOINT_PATH"
 
 mkdir -p $(dirname $FINE_TUNED_CHECKPOINT_PATH)
-cp $CHECKPOINTS_PATH/megatron_gpt_peft_tuning.nemo $FINE_TUNED_CHECKPOINT_PATH
+cp $CHECKPOINT_PATH $FINE_TUNED_CHECKPOINT_PATH
 
 echo "Successfully copied fine-tuned checkpoint"
