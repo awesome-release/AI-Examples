@@ -2,7 +2,7 @@
 auto_deploy: false
 context: release-ry6clz
 domain: ai-playground.releaseapp.io
-repo_name: Draiken/AI-Examples
+repo_name: awesome-release/AI-Examples
 environment_templates:
   - name: permanent
   - name: ephemeral
