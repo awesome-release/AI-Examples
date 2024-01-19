@@ -46,6 +46,7 @@ def main():
                         "--triton_model_repository", args.model_repository], check=True)
 
     elif args.command == 'export':
+        os.makedirs(args.model_repository, exist_ok=True)
         subprocess.run(["python", export_script_path,
                         "--model_type", args.model_type,
                         "--num_gpus", str(args.num_gpus),
@@ -56,6 +57,7 @@ def main():
     elif args.command == 'export_and_run':
         if args.model_repository:
             model_repo_arg = ["--triton_model_repository", args.model_repository]
+            os.makedirs(args.model_repository, exist_ok=True)
             print("Exporting model to:", args.model_repository)
         else:
             print("No model repository specified, using default.")
