@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+import torch
+import argparse
+import os
+import subprocess
+
+def add_global_options(parser):
+    parser.add_argument('--model_type', default='llama', help='Type of the model (default: llama)')
+
+def main():
+    triton_model_name = os.environ.get('TRITON_MODEL_NAME', "release-fine-tuned-peft")
+    nemo_scripts_path = os.environ.get('NEMO_SCRIPTS_PATH', "/opt/NeMo/scripts")
+    export_script_path = os.path.join(nemo_scripts_path, os.environ.get('EXPORT_SCRIPT_PATH', "export/export_to_trt.py"))
+    deploy_script_path = os.path.join(nemo_scripts_path, os.environ.get('DEPLOY_SCRIPT_PATH', "deploy/deploy_triton.py"))
+    max_gpus = torch.cuda.device_count()
+
+    parser = argparse.ArgumentParser(description="Script to manage Triton model deployment and export.")
+    subparsers = parser.add_subparsers(dest='command', required=True)
+
+    # Subparser for the 'run' command
+    parser_run = subparsers.add_parser('run', help='Run the deploy script without exporting.')
+    parser_run.add_argument('--model_repository', required=True, help='Path to the Triton model repository.')
+
+    # Subparser for the 'export' command
+    parser_export = subparsers.add_parser('export', help='Export the model.')
+    parser_export.add_argument('--num_gpus', default=1, type=int, help='Number of GPUs to use for export (default: 1, max: %d)' % max_gpus)
+    parser_export.add_argument('--nemo_checkpoint', required=True, help='Path to the NeMo checkpoint file.')
+    parser_export.add_argument('--model_repository', required=True, help='Path to the Triton model repository.')
+
+    # Subparser for the 'export_and_run' command
+    parser_export_run = subparsers.add_parser('export_and_run', help='Export the model and then run the deploy script.')
+    parser_export_run.add_argument('--num_gpus', default=1, type=int, help='Number of GPUs to use for export (default: 1, max: %d)' % max_gpus)
+    parser_export_run.add_argument('--nemo_checkpoint', required=True, help='Path to the NeMo checkpoint file.')
+    parser_export_run.add_argument('--model_repository', required=False, help='Path to the Triton model repository.')
+
+    for subparser in [parser_run, parser_export, parser_export_run]:
+        add_global_options(subparser)
+
+    args = parser.parse_args()
+
+    if args.command == 'run':
+        subprocess.run(["python", deploy_script_path,
+                        "--model_type", args.model_type,
+                        "--triton_model_name", triton_model_name,
+                        "--triton_model_repository", args.model_repository], check=True)
+
+    elif args.command == 'export':
+        subprocess.run(["python", export_script_path,
+                        "--model_type", args.model_type,
+                        "--num_gpus", str(args.num_gpus),
+                        "--nemo_checkpoint", args.nemo_checkpoint,
+                        "--model_repository", args.model_repository], check=True)
+        print("Model successfully exported to: ", args.model_repository)
+
+    elif args.command == 'export_and_run':
+        if args.model_repository:
+            model_repo_arg = ["--triton_model_repository", args.model_repository]
+            print("Exporting model to:", args.model_repository)
+        else:
+            print("No model repository specified, using default.")
+            model_repo_arg = []
+
+        subprocess.run(["python", deploy_script_path,
+                        "--num_gpus", str(args.num_gpus),
+                        "--model_type", args.model_type,
+                        "--nemo_checkpoint", args.nemo_checkpoint,
+                        "--triton_model_name", triton_model_name] + model_repo_arg, check=True)
+
+if __name__ == "__main__":
+    main()
