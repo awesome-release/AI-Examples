@@ -1,16 +1,13 @@
 ---
-auto_deploy: false
+auto_deploy: true
 context: release-ry6clz
 domain: ai-playground.releaseapp.io
-repo_name: awesome-release/AI-Examples
-environment_templates:
-  - name: permanent
-  - name: ephemeral
+repo_name: Draiken/AI-Examples
 hostnames:
   - nemo-inference: nemo-${env_id}.${domain}
 resources:
   cpu:
-    limits: 24
+    limits: 48
     requests: 12
   memory:
     limits: 64Gi
@@ -29,6 +26,30 @@ jobs:
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+  - name: triton-export
+    command:
+      - python
+      - "/opt/NeMo/scripts/export/export_to_trt.py"
+      - "--model_type"
+      - llama
+      - "--nemo_checkpoint"
+      - "$(FINE_TUNED_CHECKPOINT_PATH)"
+      - "--model_repository"
+      - "/tmp/triton_model"
+    from_services: nemo-inference
+    completed_timeout: 3600
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
     volumes:
       - name: shmem
         type: shmem
@@ -39,11 +60,19 @@ jobs:
 services:
   - name: nemo-training
     image: draiken/ai-examples/nemo-training
+    has_repo: true
     build:
       context: "."
+      dockerfile: docker/Dockerfile.training
+    command:
+      - tail
+      - "-f"
+      - "/dev/null"
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
     volumes:
       - name: shmem
         type: shmem
@@ -52,7 +81,7 @@ services:
       - claim: tmp
         mount_path: "/tmp"
     cpu:
-      limits: 24
+      limits: 48
       requests: 12
     memory:
       limits: 64Gi
@@ -63,15 +92,15 @@ services:
     command:
       - python
       - "/opt/NeMo/scripts/deploy/deploy_triton.py"
-      - "--nemo_checkpoint"
-      - "/bucket/ai-models-tmp/llama-2-7b-hf.nemo"
       - "--model_type"
       - llama
-      - "--triton_model_name"
-      - release-model
+      - "--model_repository"
+      - "/tmp/triton_model"
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
     volumes:
       - name: shmem
         type: shmem
@@ -80,7 +109,7 @@ services:
       - claim: tmp
         mount_path: "/tmp"
     cpu:
-      limits: 24
+      limits: 48
       requests: 8
     memory:
       limits: 64Gi
@@ -88,18 +117,24 @@ services:
 workflows:
   - name: setup
     parallelize:
-      - step: fine-tuning
+      - step: export
         tasks:
-          - jobs.peft-tuning
+          - jobs.triton-export
         halt_on_error: true
-        wait_for_finish: true
+      - step: serve
+        tasks:
+          - services.nemo-inference
   - name: patch
     parallelize:
-      - step: inference
-        tasks: []
+      - step: services-0
+        tasks:
+          - services.nemo-inference
   - name: teardown
     parallelize:
       - step: remove-environment
         tasks:
           - release.remove_environment
 tracking_branch: peft
+environment_templates:
+  - name: permanent
+  - name: ephemeral
