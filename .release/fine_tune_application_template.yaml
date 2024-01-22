@@ -2,7 +2,7 @@
 auto_deploy: true
 context: release-ry6clz
 domain: ai-playground.releaseapp.io
-repo_name: awesome-release/AI-Examples
+repo_name: releasehub-com/AI-Examples
 hostnames:
   - nemo-inference: nemo-${env_id}.${domain}
 resources:
@@ -38,7 +38,7 @@ jobs:
       - "/bin/triton"
       - export
       - "--nemo_checkpoint"
-      - "$(FINE_TUNED_CHECKPOINT_PATH)"
+      - "/bucket-release-ry6clz-static-builds/ai-models-tmp/peft_merged_model.nemo"
       - "--model_repository"
       - "/tmp/triton_model"
     from_services: nemo-inference
