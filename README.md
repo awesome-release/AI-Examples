@@ -1,5 +1,27 @@
 # AI-Examples
 
+## Basic Flow
+
+### NeMo
+
+- Convert HF format to NeMo format
+- Run fine tuning
+- Merge fine tuned NeMo model into Pre-trained NeMo model
+
+### NeMoFW-Inference
+
+- Run the NeMo model directly
+- or -
+- Convert NeMo model into TensorRT-LLM format
+
+### TensorRT-LLM
+
+- Convert TensorRT-LLM model into Triton engine
+
+### Triton
+
+- Serve Triton engine
+
 ## Fine Tuning
 ### Acquire models
 From a shell within the Nemo app, copy the models from s3 to /models
@@ -107,10 +129,10 @@ export CONCAT_SAMPLING_PROBS="[1]"
 export TP_SIZE=4
 export PP_SIZE=1
 export CONCAT_SAMPLING_PROBS="[1.0]"
-export MODEL="/models/llama-2-7b-hf.nemo"
-export TRAIN_DS="[/models/pubmedqa/pubmedqa_train.jsonl]"
-export VALID_DS="[/models/pubmedqa/pubmedqa_val.jsonl]"
-export TEST_DS="[/models/pubmedqa/pubmedqa_test.jsonl]"
+export MODEL="/tmp/tinyllama-1.1b-chat-v1.nemo"
+export TRAIN_DS="[/bucket/ai-models-tmp/pubmedqa/pubmedqa_train.jsonl]"
+export VALID_DS="[/bucket/ai-models-tmp/pubmedqa/pubmedqa_val.jsonl]"
+export TEST_DS="[/bucket/ai-models-tmp/pubmedqa/pubmedqa_test.jsonl]"
 export TEST_NAMES="[pubmedqa]"
 export SCHEME="lora"
 export NVTE_FLASH_ATTN=0
@@ -138,6 +160,10 @@ torchrun --nproc_per_node=4 \
 ```
 
 To run fine tuning, spin up an env for the [Nemo app in release](https://app.release.com/admin/apps/8118/environments).
+
+### Merge
+
+Run `merge.py` from this repo with `cpu.merge.conf.yaml` settings on `nvcr.io/nvidia/nemo:23.10`
 
 ## RAG
 
@@ -202,13 +228,13 @@ From within the TensorRT-LLM docker image
 
 
 ```
-python examples/llama/build.py --model_dir ./Llama-2-7b-hf/ \
+python examples/llama/build.py --model_dir /tmp/tiny_merged_model.nemo \
   --dtype float16 \
   --remove_input_padding \
   --use_gpt_attention_plugin float16 \
   --enable_context_fmha \
   --use_gemm_plugin float16 \
-  --output_dir ./trt_engines-fp16-4-gpu/ \
+  --output_dir /tmp/trt_engines-fp16-4-gpu/ \
   --world_size 4 \
   --tp_size 2 \
   --pp_size 2 \
@@ -221,9 +247,9 @@ python examples/llama/build.py --model_dir ./Llama-2-7b-hf/ \
 ```
 mpirun -n 4 --allow-run-as-root \
 python3 examples/llama/run.py\
-  --engine_dir=trt_engines-fp16-4-gpu \
+  --engine_dir=/tmp/trt_engines-fp16-4-gpu \
   --max_output_len 100 \
-  --tokenizer_dir ./Llama-2-7b-hf/ \
+  --tokenizer_dir /tmp/tiny_merged_model.nemo \
   --input_text "What is ReleaseHub.com"
 ```
 
