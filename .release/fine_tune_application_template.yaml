@@ -1,0 +1,143 @@
+---
+auto_deploy: true
+context: release-ry6clz
+domain: ai-playground.releaseapp.io
+repo_name: releasehub-com/AI-Examples
+hostnames:
+  - nemo-inference: nemo-${env_id}.${domain}
+resources:
+  cpu:
+    limits: 48
+    requests: 12
+  memory:
+    limits: 64Gi
+    requests: 16Gi
+  replicas: 1
+shared_volumes:
+  - name: tmp
+    size: 20Gi
+    type: persistent
+jobs:
+  - name: peft-tuning
+    command:
+      - "/bin/peft_tuning"
+    from_services: nemo-training
+    completed_timeout: 5400
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+  - name: triton-export
+    command:
+      - "/bin/triton"
+      - export
+      - "--nemo_checkpoint"
+      - "/bucket-release-ry6clz-static-builds/ai-models-tmp/peft_merged_model.nemo"
+      - "--model_repository"
+      - "/tmp/triton_model"
+    from_services: nemo-inference
+    completed_timeout: 3600
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+services:
+  - name: nemo-training
+    image: draiken/ai-examples/nemo-training
+    has_repo: true
+    build:
+      context: "."
+      dockerfile: docker/Dockerfile.training
+    command:
+      - tail
+      - "-f"
+      - "/dev/null"
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+    cpu:
+      limits: 48
+      requests: 12
+    memory:
+      limits: 64Gi
+      requests: 16Gi
+  - name: nemo-inference
+    image: draiken/ai-examples/nemo-inference
+    has_repo: true
+    build:
+      context: "."
+      dockerfile: docker/Dockerfile.inference
+    command:
+      - "/bin/triton"
+      - run
+      - "--model_repository"
+      - "/tmp/triton_model"
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+    ports:
+      - type: node_port
+        target_port: "8000"
+        port: "8000"
+    cpu:
+      limits: 48
+      requests: 8
+    memory:
+      limits: 64Gi
+      requests: 16Gi
+workflows:
+  - name: setup
+    parallelize:
+      - step: export
+        tasks:
+          - jobs.triton-export
+        halt_on_error: true
+      - step: serve
+        tasks:
+          - services.nemo-inference
+  - name: patch
+    parallelize:
+      - step: services-0
+        tasks:
+          - services.nemo-inference
+  - name: teardown
+    parallelize:
+      - step: remove-environment
+        tasks:
+          - release.remove_environment
+tracking_branch: peft
+environment_templates:
+  - name: permanent
+  - name: ephemeral

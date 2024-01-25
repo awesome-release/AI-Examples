@@ -1,0 +1,84 @@
+#!/bin/bash
+
+set -e
+
+MODELS_ROOT_PATH=${MODELS_ROOT_PATH:-"/bucket/ai-models-tmp"}
+
+# Setting default values for environment variables if not already set
+export PEFT_TUNING_SCRIPT="${PEFT_TUNING_SCRIPT:-/opt/NeMo/examples/nlp/language_modeling/tuning/megatron_gpt_peft_tuning.py}"
+export CONCAT_SAMPLING_PROBS="${CONCAT_SAMPLING_PROBS:-[1]}"
+export TP_SIZE="${TP_SIZE:-4}"
+export PP_SIZE="${PP_SIZE:-1}"
+export MODEL="${MODEL:-${MODELS_ROOT_PATH}/llama-2-7b-hf.nemo}"
+export TRAIN_DS="${TRAIN_DS:-[${MODELS_ROOT_PATH}/pubmedqa/pubmedqa_train.jsonl]}"
+export VALID_DS="${VALID_DS:-[${MODELS_ROOT_PATH}/pubmedqa/pubmedqa_val.jsonl]}"
+export TEST_DS="${TEST_DS:-[${MODELS_ROOT_PATH}/pubmedqa/pubmedqa_test.jsonl]}"
+export TEST_NAMES="${TEST_NAMES:-[pubmedqa]}"
+export SCHEME="${SCHEME:-lora}"
+export NVTE_FLASH_ATTN="${NVTE_FLASH_ATTN:-0}"
+export NVTE_FUSED_ATTN="${NVTE_FUSED_ATTN:-0}"
+export NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
+
+export CHECKPOINTS_PATH=/workspace/nemo_experiments/megatron_gpt_peft_tuning/checkpoints
+export FINE_TUNED_CHECKPOINT_PATH=${FINE_TUNED_CHECKPOINT_PATH:-${MODELS_ROOT_PATH}/fine-tuned-checkpoints/fine_tuned_checkpoint.nemo}
+
+echo "Fine tuning with:"
+
+echo "Model: $MODEL"
+echo "Training dataset: $TRAIN_DS"
+echo "Validation dataset: $VALID_DS"
+echo "Test dataset: $TEST_DS"
+echo "Test names: $TEST_NAMES"
+echo "Scheme: $SCHEME"
+echo "TP size: $TP_SIZE"
+echo "PP size: $PP_SIZE"
+echo "Concat sampling probabilities: $CONCAT_SAMPLING_PROBS"
+echo "NVTE flash attention: $NVTE_FLASH_ATTN"
+echo "NVTE fused attention: $NVTE_FUSED_ATTN"
+echo "NPROC per node: $NPROC_PER_NODE"
+echo "Fine tuned checkpoint output path: $FINE_TUNED_CHECKPOINT_PATH"
+
+# Default options
+PEFT_OPTIONS="
+  trainer.devices=4
+  trainer.num_nodes=1
+  trainer.precision=bf16
+  trainer.val_check_interval=20
+  trainer.max_steps=50
+  model.megatron_amp_O2=False
+  ++model.mcore_gpt=True
+  model.tensor_model_parallel_size=${TP_SIZE}
+  model.pipeline_model_parallel_size=${PP_SIZE}
+  model.micro_batch_size=1
+  model.global_batch_size=4
+  model.restore_from_path=${MODEL}
+  model.data.train_ds.num_workers=0
+  model.data.validation_ds.num_workers=0
+  model.data.train_ds.file_names=${TRAIN_DS}
+  model.data.train_ds.concat_sampling_probabilities=[1.0]
+  model.data.validation_ds.file_names=${VALID_DS}
+  model.peft.peft_scheme=${SCHEME}
+"
+
+TORCH_OPTIONS="
+  --nproc_per_node=${NPROC_PER_NODE}
+"
+
+torchrun \
+  $TORCH_OPTIONS \
+  $PEFT_TUNING_SCRIPT \
+  $PEFT_OPTIONS
+
+CHECKPOINT_PATH=$CHECKPOINTS_PATH/megatron_gpt_peft_tuning.nemo
+
+if [ ! -f $CHECKPOINT_PATH ]; then
+  echo "Error fine tuning: Checkpoint not found at $CHECKPOINT_PATH"
+  exit 1
+fi
+
+echo "Copying fine-tuned checkpoint $CHECKPOINT_PATH to $FINE_TUNED_CHECKPOINT_PATH"
+
+mkdir -p $(dirname $FINE_TUNED_CHECKPOINT_PATH)
+cp $CHECKPOINT_PATH $FINE_TUNED_CHECKPOINT_PATH
+
+echo "Successfully copied fine-tuned checkpoint"
