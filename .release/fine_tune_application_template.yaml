@@ -4,7 +4,7 @@ context: release-ry6clz
 domain: ai-playground.releaseapp.io
 repo_name: releasehub-com/AI-Examples
 hostnames:
-  - nemo-inference: nemo-${env_id}.${domain}
+  - peft-service: nemo-${env_id}.${domain}
 resources:
   cpu:
     limits: 48
