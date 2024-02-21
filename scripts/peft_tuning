@@ -42,7 +42,7 @@ echo "Fine tuned checkpoint output path: $FINE_TUNED_CHECKPOINT_PATH"
 PEFT_OPTIONS="
   trainer.devices=4
   trainer.num_nodes=1
-  trainer.precision=bf16
+  trainer.precision=bf16-mixed
   trainer.val_check_interval=20
   trainer.max_steps=50
   model.megatron_amp_O2=False
