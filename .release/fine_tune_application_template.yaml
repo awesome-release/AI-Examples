@@ -21,7 +21,11 @@ jobs:
   - name: peft-tuning
     command:
       - "/bin/peft_tuning"
-    from_services: nemo-training
+    image: draiken/ai-examples/nemo-training
+    has_repo: true
+    build:
+      context: "."
+      dockerfile: docker/Dockerfile.training
     completed_timeout: 5400
     node_selector:
       - key: nvidia.com/gpu
@@ -41,7 +45,11 @@ jobs:
       - "/bucket-release-ry6clz-static-builds/ai-models-tmp/peft_merged_model.nemo"
       - "--model_repository"
       - "/tmp/triton_model"
-    from_services: nemo-inference
+    image: draiken/ai-examples/nemo-training
+    has_repo: true
+    build:
+      context: "."
+      dockerfile: docker/Dockerfile.training
     completed_timeout: 3600
     node_selector:
       - key: nvidia.com/gpu
@@ -98,7 +106,7 @@ workflows:
       - step: remove-environment
         tasks:
           - release.remove_environment
-tracking_branch: peft
+tracking_branch: main
 environment_templates:
   - name: permanent
   - name: ephemeral
