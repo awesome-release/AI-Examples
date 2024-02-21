@@ -78,9 +78,6 @@ services:
         mount_path: "/dev/shm"
       - claim: tmp
         mount_path: "/tmp"
-      - type: s3
-        bucket: release-ry6clz-static-builds
-        mount_path: "/bucket"
     cpu:
       limits: 48
       requests: 12
@@ -110,9 +107,6 @@ services:
         mount_path: "/dev/shm"
       - claim: tmp
         mount_path: "/tmp"
-      - type: s3
-        bucket: release-ry6clz-static-builds
-        mount_path: "/bucket"
     ports:
       - type: node_port
         target_port: "8000"
