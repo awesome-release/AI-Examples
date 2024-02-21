@@ -55,6 +55,33 @@ jobs:
         mount_path: "/dev/shm"
       - claim: tmp
         mount_path: "/tmp"
+services:
+  - name: peft-service
+    image: draiken/ai-examples/nemo-training
+    has_repo: true
+    build:
+      context: "."
+      dockerfile: docker/Dockerfile.training
+    command:
+      - "/bin/peft_tuning"
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+    cpu:
+      limits: 48
+      requests: 12
+    memory:
+      limits: 64Gi
+      requests: 16Gi
 workflows:
   - name: setup
     parallelize:
