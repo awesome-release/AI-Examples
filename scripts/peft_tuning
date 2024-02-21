@@ -38,6 +38,8 @@ echo "NVTE fused attention: $NVTE_FUSED_ATTN"
 echo "NPROC per node: $NPROC_PER_NODE"
 echo "Fine tuned checkpoint output path: $FINE_TUNED_CHECKPOINT_PATH"
 
+cp $MODEL /tmp/model.nemo
+
 # Default options
 PEFT_OPTIONS="
   trainer.devices=4
@@ -51,7 +53,7 @@ PEFT_OPTIONS="
   model.pipeline_model_parallel_size=${PP_SIZE}
   model.micro_batch_size=1
   model.global_batch_size=4
-  model.restore_from_path=${MODEL}
+  model.restore_from_path=/tmp/model.nemo
   model.data.train_ds.num_workers=0
   model.data.validation_ds.num_workers=0
   model.data.train_ds.file_names="[${TRAIN_DS}]"
