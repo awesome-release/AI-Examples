@@ -120,18 +120,14 @@ services:
 workflows:
   - name: setup
     parallelize:
+      - step: fine-tune
+        tasks:
+          - jobs.peft-training
+        halt_on_error: true
       - step: export
         tasks:
           - jobs.triton-export
         halt_on_error: true
-      - step: serve
-        tasks:
-          - services.nemo-inference
-  - name: patch
-    parallelize:
-      - step: services-0
-        tasks:
-          - services.nemo-inference
   - name: teardown
     parallelize:
       - step: remove-environment

@@ -238,13 +238,13 @@ From within the TensorRT-LLM docker image
 ```
 
 ```
-python examples/llama/build.py --model_dir /tmp/tiny_merged_model.nemo \
+python examples/llama/build.py --model_dir /models/tiny_merged_model.nemo \
   --dtype float16 \
   --remove_input_padding \
   --use_gpt_attention_plugin float16 \
   --enable_context_fmha \
   --use_gemm_plugin float16 \
-  --output_dir /tmp/trt_engines-fp16-4-gpu/ \
+  --output_dir /models/tiny_merged_engine-fp16-4-gpu/ \
   --world_size 4 \
   --tp_size 2 \
   --pp_size 2 \
@@ -254,12 +254,19 @@ python examples/llama/build.py --model_dir /tmp/tiny_merged_model.nemo \
 
 ### Test the model via TensorRT-LLM
 
+mpirun -n 4 --allow-run-as-root \
+python3 /app/tensorrt_llm/examples/llama/run.py\
+  --engine_dir=trt_engines-fp16-4-gpu \
+  --max_output_len 100 \
+  --tokenizer_dir ./Llama-2-7b-hf/ \
+  --input_text "What is ReleaseHub.com"
+
 ```
 mpirun -n 4 --allow-run-as-root \
 python3 examples/llama/run.py\
-  --engine_dir=/tmp/trt_engines-fp16-4-gpu \
+  --engine_dir=/models/tiny_merged_engine-fp16-4-gpu \
   --max_output_len 100 \
-  --tokenizer_dir /tmp/tiny_merged_model.nemo \
+  --tokenizer_dir /models/tiny_merged_model.nemo \
   --input_text "What is ReleaseHub.com"
 ```
 
@@ -308,17 +315,17 @@ curl -X POST localhost:8000/v2/models/ensemble/generate -d \
 }'
 ```
 
-## Apply fine tuning to base model (not working yet)
+## Convert .nemo to .onnx
 
 ```
-./apply_tuning \
-  --base_model_path /bucket/ai-models-tmp/llama-2-7b-hf.nemo \
-  --checkpoint_path /bucket/ai-models-tmp/nemo_experiments/megatron_gpt_peft_tuning/checkpoints/megatron_gpt_peft_tuning.nemo \
-  --output_path llama-fine-tuned.nemo
+apt-get update && apt-get install -y libsndfile1 ffmpeg
+pip install Cython
+pip install nemo_toolkit['all']
 ```
+https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/core/export.html
 
-## Start Triton with Llama base model
+## Start Triton with ONNX model
 
 ```
-NEMO_CHECKPOINT=/bucket/ai-models-tmp/llama-2-7b-hf.nemo ./start_triton
+tritonserver --model-repository=/models
 ```
