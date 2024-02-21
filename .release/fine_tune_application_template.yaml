@@ -34,7 +34,7 @@ jobs:
         size: 16Gi
         mount_path: "/dev/shm"
       - claim: tmp
-        mount_path: "/tmp"
+        mount_path: "/workspace"
   - name: triton-export
     command:
       - "/bin/triton"
@@ -42,7 +42,7 @@ jobs:
       - "--nemo_checkpoint"
       - "/bucket-release-ry6clz-static-builds/ai-models-tmp/peft_merged_model.nemo"
       - "--model_repository"
-      - "/tmp/triton_model"
+      - "/workspace/triton_model"
     from_services: nemo-inference
     completed_timeout: 3600
     node_selector:
@@ -56,7 +56,7 @@ jobs:
         size: 16Gi
         mount_path: "/dev/shm"
       - claim: tmp
-        mount_path: "/tmp"
+        mount_path: "/workspace"
 services:
   - name: nemo-training
     image: draiken/ai-examples/nemo-training
@@ -77,7 +77,7 @@ services:
         size: 16Gi
         mount_path: "/dev/shm"
       - claim: tmp
-        mount_path: "/tmp"
+        mount_path: "/workspace"
     cpu:
       limits: 48
       requests: 12
@@ -94,7 +94,7 @@ services:
       - "/bin/triton"
       - run
       - "--model_repository"
-      - "/tmp/triton_model"
+      - "/workspace/triton_model"
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
@@ -106,7 +106,7 @@ services:
         size: 16Gi
         mount_path: "/dev/shm"
       - claim: tmp
-        mount_path: "/tmp"
+        mount_path: "/workspace"
     ports:
       - type: node_port
         target_port: "8000"
