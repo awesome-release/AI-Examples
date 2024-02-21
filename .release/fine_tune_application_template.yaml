@@ -33,6 +33,11 @@ jobs:
         type: shmem
         size: 16Gi
         mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+      - type: s3
+        bucket: release-ry6clz-static-builds
+        mount_path: "/bucket"
   - name: triton-export
     command:
       - "/bin/triton"
@@ -55,6 +60,9 @@ jobs:
         mount_path: "/dev/shm"
       - claim: tmp
         mount_path: "/tmp"
+      - type: s3
+        bucket: release-ry6clz-static-builds
+        mount_path: "/bucket"
 services:
   - name: nemo-training
     image: draiken/ai-examples/nemo-training
