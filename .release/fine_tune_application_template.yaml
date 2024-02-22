@@ -24,8 +24,27 @@ jobs:
   - name: peft-tuning
     command:
       - "/bin/peft_tuning"
-    from_services: nemo-training
+    from_services: nemo-scripts
     completed_timeout: 5400
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+      - key: alpha.eksctl.io/nodegroup-name
+        value: standard-workers-fed6f3
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+      - claim: workspace
+        mount_path: "/workspace"
+  - name: merge
+    command:
+      - "/bin/merge.py"
+    from_services: nemo-scripts
+    completed_timeout: 3600
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
@@ -48,7 +67,7 @@ jobs:
       - "/bucket-release-ry6clz-static-builds/ai-models-tmp/peft_merged_model.nemo"
       - "--model_repository"
       - "/workspace/triton_model"
-    from_services: nemo-inference
+    from_services: nemo-scripts
     completed_timeout: 3600
     node_selector:
       - key: nvidia.com/gpu
@@ -61,14 +80,16 @@ jobs:
         size: 16Gi
         mount_path: "/dev/shm"
       - claim: tmp
+        mount_path: "/tmp"
+      - claim: workspace
         mount_path: "/workspace"
 services:
-  - name: nemo-training
-    image: draiken/ai-examples/nemo-training
+  - name: nemo-scripts
+    image: ai-examples/nemo-scripts
     has_repo: true
     build:
       context: "."
-      dockerfile: docker/Dockerfile.training
+      dockerfile: Dockerfile
     command:
       - "/bin/peft_tuning"
     node_selector:
@@ -89,45 +110,16 @@ services:
     memory:
       limits: 64Gi
       requests: 16Gi
-  - name: nemo-inference
-    image: draiken/ai-examples/nemo-inference
-    has_repo: true
-    build:
-      context: "."
-      dockerfile: docker/Dockerfile.inference
-    command:
-      - "/bin/triton"
-      - run
-      - "--model_repository"
-      - "/workspace/triton_model"
-    node_selector:
-      - key: nvidia.com/gpu
-        value: "true"
-      - key: alpha.eksctl.io/nodegroup-name
-        value: standard-workers-fed6f3
-    volumes:
-      - name: shmem
-        type: shmem
-        size: 16Gi
-        mount_path: "/dev/shm"
-      - claim: tmp
-        mount_path: "/workspace"
-    ports:
-      - type: node_port
-        target_port: "8000"
-        port: "8000"
-    cpu:
-      limits: 48
-      requests: 8
-    memory:
-      limits: 64Gi
-      requests: 16Gi
 workflows:
   - name: setup
     parallelize:
       - step: fine-tune
         tasks:
           - jobs.peft-tuning
+        halt_on_error: true
+      - step: merge
+        tasks:
+          - jobs.merge
         halt_on_error: true
       - step: export
         tasks:
