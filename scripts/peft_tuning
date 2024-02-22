@@ -78,9 +78,9 @@ if [ ! -f $CHECKPOINT_PATH ]; then
   exit 1
 fi
 
-echo "Copying fine-tuned checkpoint $CHECKPOINT_PATH to $FINE_TUNED_CHECKPOINT_PATH"
+echo "Copying fine-tuned checkpoint $CHECKPOINT_PATH to $RAW_OUTPUT_BUCKET_PATH"
 
 mkdir -p $(dirname $FINE_TUNED_CHECKPOINT_PATH)
-cp $CHECKPOINT_PATH $FINE_TUNED_CHECKPOINT_PATH
+aws s3 cp $CHECKPOINT_PATH $RAW_OUTPUT_BUCKET_PATH
 
 echo "Successfully copied fine-tuned checkpoint"
