@@ -3,8 +3,6 @@ auto_deploy: true
 context: release-ry6clz
 domain: ai-playground.releaseapp.io
 repo_name: releasehub-com/AI-Examples
-hostnames:
-  - nemo-training: nemo-${env_id}.${domain}
 resources:
   cpu:
     limits: 48
