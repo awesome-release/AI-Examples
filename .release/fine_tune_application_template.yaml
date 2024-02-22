@@ -22,13 +22,11 @@ jobs:
   - name: peft-tuning
     command:
       - "/bin/peft_tuning"
-    from_services: nemo-scripts
+    from_services: nemofw-training
     completed_timeout: 5400
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
-      - key: alpha.eksctl.io/nodegroup-name
-        value: standard-workers-fed6f3
     volumes:
       - name: shmem
         type: shmem
@@ -40,14 +38,12 @@ jobs:
         mount_path: "/workspace"
   - name: merge
     command:
-      - "/bin/merge.py"
-    from_services: nemo-scripts
+      - "python3 /bin/merge.py"
+    from_services: nemofw-training
     completed_timeout: 3600
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
-      - key: alpha.eksctl.io/nodegroup-name
-        value: standard-workers-fed6f3
     volumes:
       - name: shmem
         type: shmem
@@ -65,13 +61,11 @@ jobs:
       - "/bucket-release-ry6clz-static-builds/ai-models-tmp/peft_merged_model.nemo"
       - "--model_repository"
       - "/workspace/triton_model"
-    from_services: nemo-scripts
+    from_services: nemofw-training
     completed_timeout: 3600
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
-      - key: alpha.eksctl.io/nodegroup-name
-        value: standard-workers-fed6f3
     volumes:
       - name: shmem
         type: shmem
@@ -82,8 +76,8 @@ jobs:
       - claim: workspace
         mount_path: "/workspace"
 services:
-  - name: nemo-scripts
-    image: ai-examples/nemo-scripts
+  - name: nemofw-training
+    image: ai-examples/nemofw-training
     has_repo: true
     build:
       context: "."

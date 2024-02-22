@@ -22,6 +22,22 @@ export NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
 export CHECKPOINTS_PATH=/workspace/nemo_experiments/megatron_gpt_peft_tuning/checkpoints
 export FINE_TUNED_CHECKPOINT_PATH=${FINE_TUNED_CHECKPOINT_PATH:-${MODELS_ROOT_PATH}/fine-tuned-checkpoints/fine_tuned_checkpoint.nemo}
 
+# If passed a folder rather than a .nemo file, convert it to nemo
+if [ -d $MODEL ]; then
+  STRLEN=${#MODEL}
+  # If the path ends with /, truncate it
+  if [[ "${MODEL:STRLEN-1:STRLEN}" == "/" ]]; then
+    NEMO_MODEL_FILE_NAME=${MODEL:0:STRLEN-1}
+  else
+    NEMO_MODEL_FILE_NAME=${MODEL}
+  fi
+  NEMO_MODEL_FILE_NAME+=".nemo"
+  python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=$MODEL --out-file=/workspace/$NEMO_MODEL_FILE_NAME
+  # Store the .nemo file in s3
+  aws s3 cp /workspace/$NEMO_MODEL_FILE_NAME $MODELS_ROOT_PATH/$NEMO_MODEL_FILE_NAME
+  MODEL=/workspace/$NEMO_MODEL_FILE_NAME
+fi
+
 echo "Fine tuning with:"
 
 echo "Model: $MODEL"
