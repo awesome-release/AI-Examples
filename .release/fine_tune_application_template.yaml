@@ -15,7 +15,7 @@ resources:
   replicas: 1
 shared_volumes:
   - name: tmp
-    size: 20Gi
+    size: 40Gi
     type: persistent
 jobs:
   - name: peft-tuning
