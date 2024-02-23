@@ -32,13 +32,17 @@ if [ -d $MODEL ]; then
     NEMO_MODEL_FILE_NAME=${MODEL}
   fi
   NEMO_MODEL_FILE_NAME+=".nemo"
+  echo "===== Converting HF model .nemo format"
   python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=$MODEL --out-file=/workspace/$NEMO_MODEL_FILE_NAME
+  echo "===== Converted HF model to .nemo"
   # Store the .nemo file in s3
+  echo "===== Storing .nemo model to s3"
   aws s3 cp /workspace/$NEMO_MODEL_FILE_NAME $MODELS_ROOT_PATH/$NEMO_MODEL_FILE_NAME
+  echo "===== Done writing .nemo to s3"
   MODEL=/workspace/$NEMO_MODEL_FILE_NAME
 fi
 
-echo "Fine tuning with:"
+echo "=========== Begin fine tuning with:"
 
 echo "Model: $MODEL"
 echo "Training dataset: $TRAIN_DS"
