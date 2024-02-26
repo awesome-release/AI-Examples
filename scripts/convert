@@ -19,7 +19,7 @@ if [ -d $MODEL ]; then
   python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=/workspace/$MODEL_FOLDER_NAME --out-file=/workspace/$NEMO_MODEL_FILE_NAME
   echo "===== Converted HF model to .nemo!"
   # Store the .nemo file in s3
-  echo "===== Storing .nemo model to s3"
-  aws s3 cp /workspace/$NEMO_MODEL_FILE_NAME $MODELS_ROOT_PATH/$NEMO_MODEL_FILE_NAME
+  echo "===== Storing /workspace/*.nemo model to $MODELS_ROOT_PATH/"
+  aws s3 cp /workspace/*.nemo $MODELS_ROOT_PATH/
   echo "===== Done writing .nemo to s3"
 fi
