@@ -21,7 +21,7 @@ shared_volumes:
 jobs:
   - name: convert
     command:
-      - "bin/convert"
+      - "/bin/convert"
     from_services: nemofw-training
     completed_timeout: 10800
     node_selector:
@@ -55,7 +55,7 @@ jobs:
         mount_path: "/workspace"
   - name: merge
     command:
-      - "bin/merge"
+      - "/bin/merge"
     from_services: nemofw-training
     completed_timeout: 10800
     node_selector:
