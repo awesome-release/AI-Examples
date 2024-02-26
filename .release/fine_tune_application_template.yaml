@@ -16,9 +16,9 @@ shared_volumes:
     size: 40Gi
     type: persistent
 jobs:
-  - name: peft-tuning
+  - name: convert
     command:
-      - "/bin/peft_tuning"
+      - "bin/convert"
     from_services: nemofw-training
     completed_timeout: 10800
     node_selector:
@@ -33,11 +33,28 @@ jobs:
         mount_path: "/tmp"
       - claim: workspace
         mount_path: "/workspace"
+  - name: peft-tuning
+    command:
+      - "/bin/peft_tuning"
+    from_services: nemofw-training
+    completed_timeout: 5400
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+      - claim: workspace
+        mount_path: "/workspace"
   - name: merge
     command:
-      - "python3 /bin/merge.py"
+      - "bin/merge"
     from_services: nemofw-training
-    completed_timeout: 3600
+    completed_timeout: 10800
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
@@ -102,6 +119,10 @@ services:
 workflows:
   - name: setup
     parallelize:
+      - step: convert
+        tasks:
+          - jobs.convert
+        halt_on_error: true
       - step: fine-tune
         tasks:
           - jobs.peft-tuning

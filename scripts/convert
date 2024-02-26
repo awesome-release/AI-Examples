@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Converts HF Llama to .nemo
+
+set -e
+
+MODELS_ROOT_PATH=${MODELS_ROOT_PATH:-"/bucket/ai-models-tmp"}
+
+# Setting default values for environment variables if not already set
+export MODEL="${MODEL:-${MODELS_ROOT_PATH}/llama-2-7b-hf.nemo}"
+
+# If passed a folder rather than a .nemo file, convert it to nemo
+if [ -d $MODEL ]; then
+  STRLEN=${#MODEL}
+  # If the path ends with /, truncate it
+  if [[ "${MODEL:STRLEN-1:STRLEN}" == "/" ]]; then
+    NEMO_MODEL_FILE_NAME=${MODEL:0:STRLEN-1}
+  else
+    NEMO_MODEL_FILE_NAME=${MODEL}
+  fi
+  NEMO_MODEL_FILE_NAME+=".nemo"
+  echo "===== Converting HF model .nemo format"
+  python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=$MODEL --out-file=/workspace/$NEMO_MODEL_FILE_NAME
+  echo "===== Converted HF model to .nemo"
+  # Store the .nemo file in s3
+  echo "===== Storing .nemo model to s3"
+  aws s3 cp /workspace/$NEMO_MODEL_FILE_NAME $MODELS_ROOT_PATH/$NEMO_MODEL_FILE_NAME
+  echo "===== Done writing .nemo to s3"
+fi
