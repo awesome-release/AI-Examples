@@ -8,6 +8,7 @@ resources:
     limits: 64Gi
     requests: 16Gi
   cpu:
+    limits: 128
     requests: 12
   replicas: 1
 shared_volumes:
