@@ -7,6 +7,8 @@ resources:
   memory:
     limits: 64Gi
     requests: 16Gi
+  cpu:
+    requests: 12
   replicas: 1
 shared_volumes:
   - name: workspace
