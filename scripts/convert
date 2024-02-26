@@ -11,9 +11,10 @@ export MODEL="${MODEL:-${MODELS_ROOT_PATH}/llama-2-7b-hf.nemo}"
 
 # If passed a folder rather than a .nemo file, convert it to nemo
 if [ -d $MODEL ]; then
-  MODEL_FOLDER_NAME=$(basename $MODEL)
-  NEMO_MODEL_FILE_NAME+={$MODEL_FOLDER_NAME}".nemo"
-  echo "===== Copying model from s3"
+  export MODEL_FOLDER_NAME=$(basename $MODEL)
+  export NEMO_MODEL_FILE_NAME={$MODEL_FOLDER_NAME}".nemo"
+  echo "===== Copying model from s3 aws s3 cp ${MODEL} /workspace/${MODEL_FOLDER_NAME}"
+  echo "===== Copying model from s3 aws s3 cp $MODEL /workspace/$MODEL_FOLDER_NAME"
   aws s3 cp $MODEL /workspace/$MODEL_FOLDER_NAME
   echo "===== Converting HF model .nemo format"
   python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=/workspace/$MODEL_FOLDER_NAME --out-file=/workspace/$NEMO_MODEL_FILE_NAME
