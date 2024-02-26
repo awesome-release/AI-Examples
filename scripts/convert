@@ -12,7 +12,7 @@ export MODEL="${MODEL:-${MODELS_ROOT_PATH}/llama-2-7b-hf.nemo}"
 # If passed a folder rather than a .nemo file, convert it to nemo
 if [ -d $MODEL ]; then
   export MODEL_FOLDER_NAME=$(basename $MODEL)
-  export NEMO_MODEL_FILE_NAME={$MODEL_FOLDER_NAME}".nemo"
+  export NEMO_MODEL_FILE_NAME="$MODEL_FOLDER_NAME.nemo"
   echo "===== Copying model: aws s3 cp $RAW_MODEL_PATH /workspace/$MODEL_FOLDER_NAME"
   aws s3 cp $RAW_MODEL_PATH /workspace/$MODEL_FOLDER_NAME --recursive
   echo "===== Converting HF model .nemo format"
