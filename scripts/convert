@@ -14,13 +14,15 @@ if [ -d $MODEL ]; then
   STRLEN=${#MODEL}
   # If the path ends with /, truncate it
   if [[ "${MODEL:STRLEN-1:STRLEN}" == "/" ]]; then
-    NEMO_MODEL_FILE_NAME=${MODEL:0:STRLEN-1}
+    MODEL_FOLDER_NAME=${MODEL:0:STRLEN-1}
   else
-    NEMO_MODEL_FILE_NAME=${MODEL}
+    MODEL_FOLDER_NAME=${MODEL}
   fi
-  NEMO_MODEL_FILE_NAME+=".nemo"
+  NEMO_MODEL_FILE_NAME+={$MODEL_FOLDER_NAME}".nemo"
+  echo "===== Copying model from s3"
+  aws s3 cp $MODEL /workspace/$MODEL_FOLDER_NAME
   echo "===== Converting HF model .nemo format"
-  python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=$MODEL --out-file=/workspace/$NEMO_MODEL_FILE_NAME
+  python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=/workspace/$MODEL_FOLDER_NAME --out-file=/workspace/$NEMO_MODEL_FILE_NAME
   echo "===== Converted HF model to .nemo"
   # Store the .nemo file in s3
   echo "===== Storing .nemo model to s3"
