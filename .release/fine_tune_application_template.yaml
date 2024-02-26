@@ -4,9 +4,6 @@ context: release-ry6clz
 domain: ai-playground.releaseapp.io
 repo_name: releasehub-com/AI-Examples
 resources:
-  cpu:
-    limits: 48
-    requests: 12
   memory:
     limits: 64Gi
     requests: 16Gi
@@ -23,7 +20,7 @@ jobs:
     command:
       - "/bin/peft_tuning"
     from_services: nemofw-training
-    completed_timeout: 5400
+    completed_timeout: 10800
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
