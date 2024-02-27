@@ -27,6 +27,8 @@ jobs:
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
+      - key: beta.kubernetes.io/instance-type
+        value: "g5.12xlarge"
     volumes:
       - name: shmem
         type: shmem
@@ -42,6 +44,8 @@ jobs:
     from_services: nemofw-training
     completed_timeout: 10800
     node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
       - key: beta.kubernetes.io/instance-type
         value: "g5.12xlarge"
     volumes:
@@ -66,6 +70,8 @@ jobs:
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
+      - key: beta.kubernetes.io/instance-type
+        value: "g5.12xlarge"
     volumes:
       - name: shmem
         type: shmem
@@ -87,8 +93,8 @@ services:
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
-      - key: alpha.eksctl.io/nodegroup-name
-        value: standard-workers-fed6f3
+      - key: beta.kubernetes.io/instance-type
+        value: "g5.12xlarge"
     volumes:
       - name: shmem
         type: shmem
