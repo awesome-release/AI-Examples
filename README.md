@@ -237,8 +237,20 @@ From within the TensorRT-LLM docker image
 663072083902.dkr.ecr.us-west-2.amazonaws.com/awesome-release/tensorrt-llm/tensorrtllm:latest
 ```
 
+# Extract model
 ```
-python examples/llama/build.py --model_dir /models/tiny_merged_model.nemo \
+cp /bucket/ai-models-tmp/tiny_merged_model.nemo /models/
+cd /models
+mkdir tiny_merged
+cd tiny_merged
+tar -xvf ../tiny_merged_model.nemo
+```
+
+# Build engines
+
+```
+cd /app/tensorrt_llm
+python examples/llama/build.py --model_dir /models/tiny_merged/ \
   --dtype float16 \
   --remove_input_padding \
   --use_gpt_attention_plugin float16 \
@@ -252,16 +264,25 @@ python examples/llama/build.py --model_dir /models/tiny_merged_model.nemo \
   --paged_kv_cache
 ```
 
-### Test the model via TensorRT-LLM
+# Export .nemo
+
+python scripts/export/export_to_trt.py --nemo_checkpoint /models/tiny_merged_model.nemo --model_type="llama" --model_repository /models/tiny_trt
+
+# Use existing engine
+```
+cp -r /bucket/ai-models-tmp/trt_engines-fp16-4-gpu/ /models/
+cp -r /bucket/ai-models-tmp/Llama-2-7b-hf/ /models/
 
 mpirun -n 4 --allow-run-as-root \
-python3 /app/tensorrt_llm/examples/llama/run.py\
-  --engine_dir=trt_engines-fp16-4-gpu \
+python3 examples/llama/run.py\
+  --engine_dir=/models/trt_engines-fp16-4-gpu \
   --max_output_len 100 \
-  --tokenizer_dir ./Llama-2-7b-hf/ \
+  --tokenizer_dir /models/Llama-2-7b-hf/ \
   --input_text "What is ReleaseHub.com"
-
 ```
+
+### Test the model via TensorRT-LLM
+
 mpirun -n 4 --allow-run-as-root \
 python3 examples/llama/run.py\
   --engine_dir=/models/tiny_merged_engine-fp16-4-gpu \
@@ -269,6 +290,13 @@ python3 examples/llama/run.py\
   --tokenizer_dir /models/tiny_merged_model.nemo \
   --input_text "What is ReleaseHub.com"
 ```
+
+mpirun -n 4 --allow-run-as-root \
+python3 /app/tensorrt_llm/examples/llama/run.py\
+  --engine_dir=/models/trt_engines-fp16-4-gpu \
+  --max_output_len 100 \
+  --tokenizer_dir /bucket/ai-models-tmp/Llama-2-7b-hf/ \
+  --input_text "What is ReleaseHub.com"
 
 ## Run the model via Triton
 

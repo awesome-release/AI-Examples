@@ -27,13 +27,13 @@ if [ -d $MODEL ]; then
   export MODEL_FOLDER_NAME=$(basename $MODEL)
   export NEMO_MODEL_FILE_NAME="$MODEL_FOLDER_NAME.nemo"
   echo "===== Copying model: cp $MODELS_ROOT_PATH/$NEMO_MODEL_FOLDER_NAME /workspace/$MODEL_FOLDER_NAME"
-  cp $MODELS_ROOT_PATH/$NEMO_MODEL_FOLDER_NAME /workspace/$MODEL_FOLDER_NAME --recursive
+  cp $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME /workspace/$MODEL_FOLDER_NAME --recursive
   echo "===== Converting HF model .nemo format"
   python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=/workspace/$MODEL_FOLDER_NAME --out-file=/workspace/$NEMO_MODEL_FILE_NAME
   echo "===== Converted HF model to .nemo!"
   # Store the .nemo file in s3
   echo "===== Storing /workspace/*.nemo model to $MODELS_ROOT_PATH/"
-  cp /workspace/$NEMO_MODEL_FILE_NAME.nemo $MODELS_ROOT_PATH/
+  cp /workspace/$NEMO_MODEL_FILE_NAME $MODELS_ROOT_PATH/
   echo "===== Done writing .nemo to s3"
 fi
 
