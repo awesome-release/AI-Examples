@@ -22,21 +22,6 @@ export NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
 export CHECKPOINTS_PATH=/workspace/nemo_experiments/megatron_gpt_peft_tuning/checkpoints
 export FINE_TUNED_CHECKPOINT_PATH=${FINE_TUNED_CHECKPOINT_PATH:-${MODELS_ROOT_PATH}/fine-tuned-checkpoints/fine_tuned_checkpoint.nemo}
 
-# If passed a folder rather than a .nemo file, convert it to nemo
-if [ -d $MODEL ]; then
-  export MODEL_FOLDER_NAME=$(basename $MODEL)
-  export NEMO_MODEL_FILE_NAME="$MODEL_FOLDER_NAME.nemo"
-  echo "===== Copying model: cp $MODELS_ROOT_PATH/$NEMO_MODEL_FOLDER_NAME /workspace/$MODEL_FOLDER_NAME"
-  cp $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME /workspace/$MODEL_FOLDER_NAME --recursive
-  echo "===== Converting HF model .nemo format"
-  python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=/workspace/$MODEL_FOLDER_NAME --out-file=/workspace/$NEMO_MODEL_FILE_NAME
-  echo "===== Converted HF model to .nemo!"
-  # Store the .nemo file in s3
-  echo "===== Storing /workspace/*.nemo model to $MODELS_ROOT_PATH/"
-  cp /workspace/$NEMO_MODEL_FILE_NAME $MODELS_ROOT_PATH/
-  echo "===== Done writing .nemo to s3"
-fi
-
 echo "=========== Begin fine tuning with:"
 
 echo "Model: $MODEL"
@@ -53,7 +38,31 @@ echo "NVTE fused attention: $NVTE_FUSED_ATTN"
 echo "NPROC per node: $NPROC_PER_NODE"
 echo "Fine tuned checkpoint output path: $FINE_TUNED_CHECKPOINT_PATH"
 
-cp $MODEL /workspace/model.nemo
+# If passed a folder rather than a .nemo file, convert it to nemo
+if [ -d $MODEL ]; then
+  export MODEL_FOLDER_NAME=$(basename $MODEL)
+  export NEMO_MODEL_FILE_NAME="$MODEL_FOLDER_NAME.nemo"
+  if [ -f $MODELS_ROOT_PATH/$NEMO_MODEL_FILE_NAME ]; then
+    echo "===== .nemo format already exists, skip converting."
+    echo "===== Copy .nemo from s3..."
+    cp $MODELS_ROOT_PATH/$NEMO_MODEL_FILE_NAME /workspace/model.nemo
+  else
+    echo "===== Copying model: cp $MODELS_ROOT_PATH/$NEMO_MODEL_FOLDER_NAME /workspace/$MODEL_FOLDER_NAME..."
+    cp $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME /workspace/$MODEL_FOLDER_NAME --recursive
+    echo "===== Converting HF model .nemo format..."
+    python /opt/NeMo/scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=/workspace/$MODEL_FOLDER_NAME --out-file=/workspace/model.nemo
+    echo "===== Converted HF model to .nemo!"
+    # Store the .nemo file in s3
+    echo "===== Storing /workspace/*.nemo model to $MODELS_ROOT_PATH/..."
+    cp /workspace/model.nemo $MODELS_ROOT_PATH/$NEMO_MODEL_FILE_NAME
+    echo "===== Done writing .nemo to s3"
+  fi
+fi
+
+# If the model file doesn't already exist from the conversion step, copy it from s3
+if [ ! -f /workspace/model.nemo ]; then
+  cp $MODEL /workspace/model.nemo
+fi
 
 # Default options
 PEFT_OPTIONS="
@@ -81,6 +90,7 @@ TORCH_OPTIONS="
   --nproc_per_node=${NPROC_PER_NODE}
 "
 
+echo "===== Begin fine tuning..."
 torchrun \
   $TORCH_OPTIONS \
   $PEFT_TUNING_SCRIPT \
@@ -98,6 +108,4 @@ echo "Copying fine-tuned checkpoint $CHECKPOINT_PATH to $RAW_OUTPUT_BUCKET_PATH"
 mkdir -p $(dirname $FINE_TUNED_CHECKPOINT_PATH)
 aws s3 cp $CHECKPOINT_PATH $RAW_OUTPUT_BUCKET_PATH
 
-echo "Successfully copied fine-tuned checkpoint"
-
-python3 merge.py
+echo "===== Successfully copied fine-tuned checkpoint"

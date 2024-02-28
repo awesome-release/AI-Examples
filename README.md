@@ -50,6 +50,10 @@ Currently contains multiple models for testing. You can also only grab what you 
 - llama-2-7b-hf.nemo - Nemo formatted model
 - release.pdf - Release docs for RAG
 
+### Convert HF to .nemo
+
+python scripts/nlp_language_modeling/convert_hf_llama_to_nemo.py --in-file=/workspace/Llama-2-7b-hf/ --out-file=/workspace/llama2-7b.nemo
+
 ### Run Fine Tuning
 
 These articles are the latest tutorials on running training.
@@ -241,22 +245,20 @@ From within the TensorRT-LLM docker image
 ```
 cp /bucket/ai-models-tmp/tiny_merged_model.nemo /models/
 cd /models
-mkdir tiny_merged
-cd tiny_merged
-tar -xvf ../tiny_merged_model.nemo
+tar -xvf ../tiny_merged_model.nemo -C tiny_merged_model/
 ```
 
 # Build engines
 
 ```
 cd /app/tensorrt_llm
-python examples/llama/build.py --model_dir /models/tiny_merged/ \
+python examples/llama/build.py --model_dir /models/TinyLlama-1.1B-Chat-v1.0/ \
   --dtype float16 \
   --remove_input_padding \
   --use_gpt_attention_plugin float16 \
   --enable_context_fmha \
   --use_gemm_plugin float16 \
-  --output_dir /models/tiny_merged_engine-fp16-4-gpu/ \
+  --output_dir /models/tiny_default_engine-fp16-4-gpu/ \
   --world_size 4 \
   --tp_size 2 \
   --pp_size 2 \
@@ -264,14 +266,38 @@ python examples/llama/build.py --model_dir /models/tiny_merged/ \
   --paged_kv_cache
 ```
 
-# Export .nemo
+# Export from .nemo to TensorRT-LLM engine
 
-python scripts/export/export_to_trt.py --nemo_checkpoint /models/tiny_merged_model.nemo --model_type="llama" --model_repository /models/tiny_trt
+python scripts/export/export_to_trt.py --nemo_checkpoint /models/tiny_merged_model.nemo --model_type="llama" --model_repository /models/trt_tiny-fp16-4gpu
 
+# Hmmm
+
+Test:
+python scripts/export/export_to_trt.py --nemo_checkpoint /models/GPT-2B-001_bf16_tp1.nemo --num_gpus 4 --model_type="gptnext" --model_repository /models/tmp_model_repository/
+
+
+## In Inference:
+python scripts/export/export_to_trt.py --num_gpus 1 --nemo_checkpoint /models/TinyLlama-1.1B-Chat-v1.0.nemo --model_type="llama" --model_repository /models/trt_tiny_untuned_1gpu
+
+python scripts/export/export_to_trt.py --num_gpus 1 --nemo_checkpoint /models/tiny_merged_model.nemo --model_type="llama" --model_repository /models/trt_tiny_merged_1gpu
+
+mpirun -n 4 --allow-run-as-root \
+python scripts/export/export_to_trt.py --num_gpus 4 --nemo_checkpoint /models/tiny_merged_model.nemo --model_type="llama" --model_repository /models/trt_tiny_merged_4gpu
+
+## In TensortRT-LLM:
+mpirun -n 4 --allow-run-as-root \
+python3 examples/llama/run.py\
+  --engine_dir=/models/trt_tiny-fp16-4gpu \
+  --max_output_len 100 \
+  --tokenizer_dir /models/TinyLlama-1.1B-Chat-v1.0/ \
+  --input_text "What is ReleaseHub.com"
+  
 # Use existing engine
 ```
-cp -r /bucket/ai-models-tmp/trt_engines-fp16-4-gpu/ /models/
-cp -r /bucket/ai-models-tmp/Llama-2-7b-hf/ /models/
+
+cp /bucket/ai-models-tmp/tiny_merged_model.nemo /models/
+cp -R /bucket/ai-models-tmp/trt_tiny-fp16-4gpu /models/
+
 
 mpirun -n 4 --allow-run-as-root \
 python3 examples/llama/run.py\
@@ -283,22 +309,60 @@ python3 examples/llama/run.py\
 
 ### Test the model via TensorRT-LLM
 
+#### 1 gpu
+tar -xvzf tiny_merged_model.nemo -C tiny_merged_model/
+modify /models/trt_tiny_1gpu/config.json
+add
+```
+  "pipeline_parallel": 1,
+  "quant_mode": false,
+```
+
+##### Convert merged .nemo back to HF
+
+python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py --in-file /workspace/tiny_merged_model.nemo --out-file /workspace/tiny_merged_model_hf.bin --hf-in-path /workspace/TinyLlama-1.1B-Chat-v1.0/ --hf-out-path /workspace/tiny_merged_model_hf/
+
+##### Test against tuned+merged engine
+
+python3 examples/llama/run.py\
+  --engine_dir=/models/trt_tiny_merged_1gpu \
+  --max_output_len 100 \
+  --tokenizer_dir /models/TinyLlama-1.1B-Chat-v1.0/ \
+  --input_text "Is gastric cancer different in Korea and the United States"
+
+##### Test against untuned engine
+
+python3 examples/llama/run.py\
+  --engine_dir=/models/trt_tiny_untuned_1gpu \
+  --max_output_len 100 \
+  --tokenizer_dir /models/TinyLlama-1.1B-Chat-v1.0/ \
+  --input_text "Is gastric cancer different in Korea and the United States"
+
+#### 4 GPU: 
+untar .nemo to tiny_merged_model/
+modify tiny_merged_model/config.json
+add
+```
+  "pipeline_parallel": 4,
+  "quant_mode": false,
+```
+
 mpirun -n 4 --allow-run-as-root \
 python3 examples/llama/run.py\
-  --engine_dir=/models/tiny_merged_engine-fp16-4-gpu \
+  --engine_dir=/models/trt_tiny-fp16-4gpu \
   --max_output_len 100 \
-  --tokenizer_dir /models/tiny_merged_model.nemo \
+  --tokenizer_dir /models/tiny_merged_model/ \
   --input_text "What is ReleaseHub.com"
 ```
 
 mpirun -n 4 --allow-run-as-root \
 python3 /app/tensorrt_llm/examples/llama/run.py\
-  --engine_dir=/models/trt_engines-fp16-4-gpu \
+  --engine_dir=/models/trt_tiny-fp16-4gpu \
   --max_output_len 100 \
-  --tokenizer_dir /bucket/ai-models-tmp/Llama-2-7b-hf/ \
+  --tokenizer_dir /models/tiny_merged_model.nemo \
   --input_text "What is ReleaseHub.com"
 
-## Run the model via Triton
+### Run the model via Triton
 
 ```
 cd tensorrtllm_backend
