@@ -175,6 +175,20 @@ To run fine tuning, spin up an env for the [Nemo app in release](https://app.rel
 
 Run `merge.py` from this repo with `cpu.merge.conf.yaml` settings on `nvcr.io/nvidia/nemo:23.10`
 
+#### Extract .nemo model and fix it.
+cd /models
+mkdir NemoModelExtracted
+cd NemoModelExtracted
+tar -xvf ../model_to_extract.nemo
+
+edit the model_config.yaml file and make global_batch_size a large power of 2, say 256
+instead of the nemo file in gpt_model_file
+
+cp THISREPO/cpu.merge.conf.yaml /opt/NeMo/scripts/nlp_language_modeling/merge_lora_weights/conf/model_config.yml
+cp THISREPO/scripts/merge.py /opt/NeMo/scripts/nlp_language_modeling/merge_lora_weights/merge.py
+cd /opt/NeMo/
+python scripts/nlp_language_modeling/merge_lora_weights/merge.py
+
 ## RAG
 
 For Retrieval Augmented Generation, reference is here https://github.com/NVIDIA/GenerativeAIExamples/tree/main/RetrievalAugmentedGeneration/
