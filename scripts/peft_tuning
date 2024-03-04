@@ -20,7 +20,7 @@ export NVTE_FUSED_ATTN="${NVTE_FUSED_ATTN:-0}"
 export NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
 export GPT_MODEL_PATH="/workspace/model.nemo"
 
-export CHECKPOINTS_PATH=/workspace/checkpoints
+export CHECKPOINTS_PATH=/workspace/nemo_experiments/megatron_gpt_peft_tuning/checkpoints
 export FINE_TUNED_CHECKPOINT_PATH=${FINE_TUNED_CHECKPOINT_PATH:-${MODELS_ROOT_PATH}/fine-tuned-checkpoints/fine_tuned_checkpoint.nemo}
 
 echo "=========== Begin fine tuning with:"
@@ -116,7 +116,11 @@ cd /opt/NeMo
 python scripts/nlp_language_modeling/merge_lora_weights/merge.py
 echo "===== Successfully merge models"
 
+aws s3 cp /workspace/merged.nemo /bucket/tuned.nemo $RAW_OUTPUT_BUCKET_PATH.tuned.nemo
+
 echo "===== Exporting model to triton engine"
 /bin/triton export \
   --nemo_checkpoint /workspace/merged.nemo \
   --model_repository /workspace/merged_triton_model
+
+aws s3 cp /workspace/tuned_triton_model "${RAW_OUTPUT_BUCKET_PATH}triton_engine"
