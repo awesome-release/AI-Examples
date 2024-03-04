@@ -38,25 +38,6 @@ jobs:
         mount_path: "/tmp"
       - claim: workspace
         mount_path: "/workspace"
-  - name: triton-export
-    command:
-      - "/bin/export"
-    image: nvcr.io/ea-bignlp/ga-participants/nemofw-inference:23.10_fix_v2
-    completed_timeout: 3600
-    node_selector:
-      - key: nvidia.com/gpu
-        value: "true"
-      - key: beta.kubernetes.io/instance-type
-        value: "g5.12xlarge"
-    volumes:
-      - name: shmem
-        type: shmem
-        size: 16Gi
-        mount_path: "/dev/shm"
-      - claim: tmp
-        mount_path: "/tmp"
-      - claim: workspace
-        mount_path: "/workspace"
 services:
   - name: nemofw-training
     image: ai-examples/nemofw-training
@@ -90,14 +71,6 @@ workflows:
       - step: fine-tune
         tasks:
           - jobs.peft-tuning
-        halt_on_error: true
-      - step: merge
-        tasks:
-          - jobs.merge
-        halt_on_error: true
-      - step: export
-        tasks:
-          - jobs.triton-export
         halt_on_error: true
   - name: teardown
     parallelize:

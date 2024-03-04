@@ -108,10 +108,15 @@ echo "Copying fine-tuned checkpoint $CHECKPOINT_PATH to $RAW_OUTPUT_BUCKET_PATH"
 
 mkdir -p $(dirname $FINE_TUNED_CHECKPOINT_PATH)
 aws s3 cp $CHECKPOINT_PATH $RAW_OUTPUT_BUCKET_PATH
-
 echo "===== Successfully copied fine-tuned checkpoint"
 
 echo "===== Merging checkpoint into model"
 export MERGED_MODEL_PATH="/workspace/merged.nemo"
 cd /opt/NeMo
 python scripts/nlp_language_modeling/merge_lora_weights/merge.py
+echo "===== Successfully merge models"
+
+echo "===== Exporting model to triton engine"
+/bin/triton export \
+  --nemo_checkpoint /workspace/merged.nemo \
+  --model_repository /workspace/merged_triton_model
