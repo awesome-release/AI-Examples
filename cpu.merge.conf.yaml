@@ -10,12 +10,9 @@ trainer:
 tensor_model_parallel_size: 4
 pipeline_model_parallel_size: 1
 pipeline_model_parallel_split_rank: 0 # used for encoder and decoder model (0 for others)
-gpt_model_file: "/workspace/tinyllama-1.1b-chat-v1.nemo" # GPT nemo file path
 checkpoint_dir: null # checkpoint file dir. This is used to load the PTL checkpoint generated during the GPT training
 checkpoint_name: null # PTL checkpoint file name, only used for PTL checkpoint loading
 hparams_file: null # model configuration file, only used for PTL checkpoint loading
-lora_model_path: "/workspace/TinyLlama-1.1B-Chat-v1.0-20240227-peft-chkpt.nemo"
-merged_model_path: "/workspace/tiny_merged_model-20240229.nemo"
 
 model:
   micro_batch_size: 2

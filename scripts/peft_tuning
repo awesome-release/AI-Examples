@@ -18,8 +18,9 @@ export SCHEME="${SCHEME:-lora}"
 export NVTE_FLASH_ATTN="${NVTE_FLASH_ATTN:-0}"
 export NVTE_FUSED_ATTN="${NVTE_FUSED_ATTN:-0}"
 export NPROC_PER_NODE="${NPROC_PER_NODE:-4}"
+export GPT_MODEL_PATH="/workspace/model.nemo"
 
-export CHECKPOINTS_PATH=/workspace/nemo_experiments/megatron_gpt_peft_tuning/checkpoints
+export CHECKPOINTS_PATH=/workspace/checkpoints
 export FINE_TUNED_CHECKPOINT_PATH=${FINE_TUNED_CHECKPOINT_PATH:-${MODELS_ROOT_PATH}/fine-tuned-checkpoints/fine_tuned_checkpoint.nemo}
 
 echo "=========== Begin fine tuning with:"
@@ -59,9 +60,9 @@ if [ -d $MODEL ]; then
   fi
 fi
 
-# If the model file doesn't already exist from the conversion step, copy it from s3
-if [ ! -f /workspace/model.nemo ]; then
-  cp $MODEL /workspace/model.nemo
+# If the .nemo file doesn't already exist from the conversion step, copy it from s3
+if [ ! -f $GPT_MODEL_PATH ]; then
+  cp $MODEL $GPT_MODEL_PATH
 fi
 
 # Default options
@@ -77,7 +78,7 @@ PEFT_OPTIONS="
   model.pipeline_model_parallel_size=${PP_SIZE}
   model.micro_batch_size=1
   model.global_batch_size=4
-  model.restore_from_path=/workspace/model.nemo
+  model.restore_from_path=${GPT_MODEL_PATH}
   model.data.train_ds.num_workers=0
   model.data.validation_ds.num_workers=0
   model.data.train_ds.file_names="[${TRAIN_DS}]"
@@ -96,7 +97,7 @@ torchrun \
   $PEFT_TUNING_SCRIPT \
   $PEFT_OPTIONS
 
-CHECKPOINT_PATH=$CHECKPOINTS_PATH/megatron_gpt_peft_tuning.nemo
+export CHECKPOINT_PATH="$CHECKPOINTS_PATH/model_peft_tuning_checkpoint.nemo"
 
 if [ ! -f $CHECKPOINT_PATH ]; then
   echo "Error fine tuning: Checkpoint not found at $CHECKPOINT_PATH"
@@ -109,3 +110,8 @@ mkdir -p $(dirname $FINE_TUNED_CHECKPOINT_PATH)
 aws s3 cp $CHECKPOINT_PATH $RAW_OUTPUT_BUCKET_PATH
 
 echo "===== Successfully copied fine-tuned checkpoint"
+
+echo "===== Merging checkpoint into model"
+export MERGED_MODEL_PATH="/workspace/merged.nemo"
+cd /opt/NeMo
+python scripts/nlp_language_modeling/merge_lora_weights/merge.py

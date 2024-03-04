@@ -133,7 +133,7 @@ def main(cfg) -> None:
         or cfg.get('pipeline_model_parallel_split_rank', -1) < 0
     ):
         model_config = MegatronGPTModel.restore_from(
-            restore_path=cfg.gpt_model_file, trainer=trainer, return_config=True,
+            restore_path=os.environ['GPT_MODEL_PATH'], trainer=trainer, return_config=True,
         )
 
         with open_dict(cfg):
@@ -146,13 +146,13 @@ def main(cfg) -> None:
     #     == cfg.tensor_model_parallel_size * cfg.pipeline_model_parallel_size
     # ), "devices * num_nodes should equal tensor_model_parallel_size * pipeline_model_parallel_size"
 
-    if cfg.gpt_model_file:
+    if os.environ['GPT_MODEL_PATH']:
         save_restore_connector = NLPSaveRestoreConnector()
-        if os.path.isdir(cfg.gpt_model_file):
-            save_restore_connector.model_extracted_dir = cfg.gpt_model_file
+        if os.path.isdir(os.environ['GPT_MODEL_PATH']):
+            save_restore_connector.model_extracted_dir = os.environ['GPT_MODEL_PATH']
 
         pretrained_cfg = MegatronGPTModel.restore_from(
-            restore_path=cfg.gpt_model_file,
+            restore_path=os.environ['GPT_MODEL_PATH'],
             trainer=trainer,
             return_config=True,
             save_restore_connector=save_restore_connector,
@@ -165,7 +165,7 @@ def main(cfg) -> None:
             pretrained_cfg.precision = trainer.precision
             pretrained_cfg.use_cpu_initialization = cfg.trainer.accelerator == 'cpu'
         model = MegatronGPTModel.restore_from(
-            restore_path=cfg.gpt_model_file,
+            restore_path=os.environ['GPT_MODEL_PATH'],
             trainer=trainer,
             override_config_path=pretrained_cfg,
             map_location=torch.device("cpu") if cfg.trainer.accelerator == 'cpu' else None,
@@ -197,7 +197,7 @@ def main(cfg) -> None:
         raise ValueError("need at least a nemo file or checkpoint dir")
 
     # load the lora weights on cpu for all ranks of the lora model
-    lora_weights, lora_model_cfg = load_lora(cfg.lora_model_path, cfg.tensor_model_parallel_size)
+    lora_weights, lora_model_cfg = load_lora(os.environ['FINE_TUNED_CHECKPOINT_PATH'], cfg.tensor_model_parallel_size)
 
     # merge the lora weights with the base model, for this current rank.
     merged_weights = merge(
@@ -224,14 +224,14 @@ def main(cfg) -> None:
         print(response)
 
         with open_dict(model.cfg):
-            model.cfg.restore_from_path = cfg.merged_model_path
+            model.cfg.restore_from_path = os.environ['MERGED_MODEL_PATH']
             model.cfg.data = lora_model_cfg.data
             model.cfg.target = f"{MegatronGPTSFTModel.__module__}.{MegatronGPTSFTModel.__name__}"
     else:
         logging.info("Skipping inference validation of merged model since device is 'cpu'.")
 
-    model.save_to(cfg.merged_model_path)
-    logging.info(f"saved merged model to {cfg.merged_model_path}")
+    model.save_to(os.environ['MERGED_MODEL_PATH'])
+    logging.info(f"saved merged model to {os.environ['MERGED_MODEL_PATH']}")
 
 
 if __name__ == '__main__':
