@@ -111,16 +111,14 @@ aws s3 cp $CHECKPOINT_PATH $RAW_OUTPUT_BUCKET_PATH
 echo "===== Successfully copied fine-tuned checkpoint"
 
 echo "===== Merging checkpoint into model"
-export MERGED_MODEL_PATH="/workspace/merged.nemo"
 cd /opt/NeMo
 python scripts/nlp_language_modeling/merge_lora_weights/merge.py
-echo "===== Successfully merge models"
+echo "===== Successfully merged checkpoint back into original model"
+aws s3 cp /workspace/merged.nemo $RAW_OUTPUT_BUCKET_PATH.tuned.nemo
 
-aws s3 cp /workspace/merged.nemo /bucket/tuned.nemo $RAW_OUTPUT_BUCKET_PATH.tuned.nemo
-
-echo "===== Exporting model to triton engine"
+echo "===== Exporting merged model to triton engine"
 /bin/triton export \
   --nemo_checkpoint /workspace/merged.nemo \
   --model_repository /workspace/tuned_triton_model
-
 aws s3 cp /workspace/tuned_triton_model "${RAW_OUTPUT_BUCKET_PATH}triton_engine"
+echo "===== DONE!"
