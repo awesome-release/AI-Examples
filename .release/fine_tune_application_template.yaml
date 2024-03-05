@@ -23,7 +23,7 @@ jobs:
     command:
       - "/bin/peft_tuning"
     from_services: nemofw-training
-    completed_timeout: 5400
+    completed_timeout: 10800
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
