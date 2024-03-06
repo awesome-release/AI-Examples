@@ -3,7 +3,7 @@
 set -e
 
 echo "===== Copying tuned .nemo file from S3..."
-cp $FINE_TUNED_CHECKPOINT_PATH /workspace/model.nemo
+cp $FINE_TUNED_CHECKPOINT_PATH.tuned.nemo /workspace/model.nemo
 
 echo "===== Exporting to TensorRT-LLM format Triton engine..."
 /bin/triton export \
@@ -11,5 +11,5 @@ echo "===== Exporting to TensorRT-LLM format Triton engine..."
   --model_repository /workspace/tuned_triton_model
 
 echo "===== Copying engine to S3..."
-cp /workspace/tuned_triton_model "${MODELS_ROOT_PATH}triton_engine"
+cp -r /workspace/tuned_triton_model "${FINE_TUNED_CHECKPOINT_PATH}.triton_engine"
 echo "===== Export done!"
