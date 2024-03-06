@@ -104,25 +104,20 @@ if [ ! -f $CHECKPOINT_PATH ]; then
   exit 1
 fi
 
-echo "Copying fine-tuned checkpoint $CHECKPOINT_PATH to $RAW_OUTPUT_BUCKET_PATH"
+echo "===== Copying fine-tuned checkpoint $CHECKPOINT_PATH to $RAW_OUTPUT_BUCKET_PATH..."
 
 mkdir -p $(dirname $FINE_TUNED_CHECKPOINT_PATH)
 aws s3 cp $CHECKPOINT_PATH $RAW_OUTPUT_BUCKET_PATH
 echo "===== Successfully copied fine-tuned checkpoint"
 
-echo "===== Merging checkpoint into model"
+echo "===== Merging checkpoint into model..."
 cd /opt/NeMo
 
 export MERGED_MODEL_PATH="/workspace/merged.nemo"
 python scripts/nlp_language_modeling/merge_lora_weights/merge.py
 
 echo "===== Successfully merged checkpoint back into original model"
+echo "===== Copying merged nemo file to s3..."
 aws s3 cp $MERGED_MODEL_PATH $RAW_OUTPUT_BUCKET_PATH.tuned.nemo
 
-echo "===== Exporting model to triton engine"
-/bin/triton export \
-  --nemo_checkpoint $MERGED_MODEL_PATH \
-  --model_repository /workspace/tuned_triton_model
-
-aws s3 cp /workspace/tuned_triton_model "${RAW_OUTPUT_BUCKET_PATH}triton_engine"
-echo "===== DONE!"
+echo "===== Done fine tuning!"

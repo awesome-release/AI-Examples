@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+
+echo "===== Copying tuned .nemo file from S3..."
+cp $FINE_TUNED_CHECKPOINT_PATH /workspace/model.nemo
+
+echo "===== Exporting to TensorRT-LLM format Triton engine..."
+/bin/triton export \
+  --nemo_checkpoint /workspace/model.nemo \
+  --model_repository /workspace/tuned_triton_model
+
+echo "===== Copying engine to S3..."
+cp /workspace/tuned_triton_model "${MODELS_ROOT_PATH}triton_engine"
+echo "===== Export done!"

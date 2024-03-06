@@ -38,6 +38,25 @@ jobs:
         mount_path: "/tmp"
       - claim: workspace
         mount_path: "/workspace"
+  - name: triton-export
+    command:
+      - "/bin/export"
+    from_services: nemofw-inference
+    completed_timeout: 3600
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+      - key: beta.kubernetes.io/instance-type
+        value: "g5.12xlarge"
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/tmp"
+      - claim: workspace
+        mount_path: "/workspace"
 services:
   - name: nemofw-training
     image: ai-examples/nemofw-training
@@ -65,12 +84,41 @@ services:
     memory:
       limits: 64Gi
       requests: 16Gi
+  - name: nemofw-inference
+    has_repo: true
+    build:
+      context: "."
+      dockerfile: Dockerfile.inference
+    command:
+      - "/bin/peft_tuning"
+    node_selector:
+      - key: nvidia.com/gpu
+        value: "true"
+      - key: beta.kubernetes.io/instance-type
+        value: "g5.12xlarge"
+    volumes:
+      - name: shmem
+        type: shmem
+        size: 16Gi
+        mount_path: "/dev/shm"
+      - claim: tmp
+        mount_path: "/workspace"
+    cpu:
+      limits: 48
+      requests: 12
+    memory:
+      limits: 64Gi
+      requests: 16Gi
 workflows:
   - name: setup
     parallelize:
       - step: fine-tune
         tasks:
           - jobs.peft-tuning
+        halt_on_error: true
+      - step: triton-export
+        tasks:
+          - jobs.triton-export
         halt_on_error: true
   - name: teardown
     parallelize:
