@@ -7,12 +7,11 @@
 - Convert HF format to NeMo format
 - Run fine tuning
 - Merge fine tuned NeMo model into Pre-trained NeMo model
+- Convert .nemo back to HF
 
 ### NeMoFW-Inference
 
-- Run the NeMo model directly
-- or -
-- Convert NeMo model into TensorRT-LLM format
+- Convert merged HF model into TensorRT-LLM format
 
 ### TensorRT-LLM
 
@@ -332,9 +331,15 @@ add
   "quant_mode": false,
 ```
 
-##### Convert merged .nemo back to HF
+##### Convert merged .nemo back to HF from `nemofw-training`
 
-python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py --in-file /workspace/tiny_merged_model.nemo --out-file /workspace/tiny_merged_model_hf.bin --hf-in-path /workspace/TinyLlama-1.1B-Chat-v1.0/ --hf-out-path /workspace/tiny_merged_model_hf/
+cp /bucket/ai-models-tmp/tiny_merged_model.nemo /models/
+cp -r /bucket/ai-models-tmp/TinyLlama-1.1B-Chat-v1.0 /models/
+python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py --in-file /models/tiny_merged_model.nemo --out-file /models/tiny_merged_model_hf.bin --hf-in-path /models/TinyLlama-1.1B-Chat-v1.0/ --hf-out-path /models/tiny_merged_model_hf/
+
+cp 
+
+python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py --in-file /models/Llama-2-7b-hf.20240307015747.nemo.tuned.nemo --out-file /models/Llama-2-7b-hf.20240307015747.bin --hf-in-path /models/Llama-2-7b-hf/ --hf-out-path /models/Llama-2-7b-hf.20240307015747.tuned.merged-hf/
 
 ##### Test against tuned+merged engine
 
@@ -420,6 +425,15 @@ curl -X POST localhost:8000/v2/models/ensemble/generate -d \
 }
 }'
 ```
+
+wget --method POST --body-data '{
+"text_input": "What is ReleaseHub.com",
+"parameters": {
+"max_tokens": 100,
+"bad_words":[""],
+"stop_words":[""]
+}
+}' --header='Content-Type: application/json' -O - localhost:8000/v2/models/Llama-2-7b-hf-20240305-1.tuned/generate
 
 ## Convert .nemo to .onnx
 
