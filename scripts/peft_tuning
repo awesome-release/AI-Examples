@@ -80,10 +80,8 @@ PEFT_OPTIONS="
   model.global_batch_size=4
   model.restore_from_path=${GPT_MODEL_PATH}
   model.data.train_ds.num_workers=0
-  model.data.validation_ds.num_workers=0
   model.data.train_ds.file_names="[${TRAIN_DS}]"
   model.data.train_ds.concat_sampling_probabilities=[1.0]
-  model.data.validation_ds.file_names="[${VALID_DS}]"
   model.peft.peft_scheme=${SCHEME}
 "
 
