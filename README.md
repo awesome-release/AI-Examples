@@ -463,6 +463,17 @@ https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/core/export.ht
 tritonserver --model-repository=/models
 ```
 
+## Convert .nemo to HF
+
+```
+python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py \
+--in-file /models/tiny_merged_model_hf.20240404155140.nemo.tuned.nemo \
+--out-file /models/tiny_merged_model_hf.20240404155140.bin \
+--hf-in-path /models/TinyLlama-1.1B-Chat-v1.0/ \
+--hf-out-path /models/tiny-releasetuned-20240404-hf/
+```
+Copy the `tokenizer*` files and `special_tokens_map.json` files from the hf-in-path to hf-out-path.
+
 # Ray
 
 ## Ray-LLM

@@ -20,7 +20,7 @@ deployment_config:
     resources:
       accelerator_type_cpu: 0.01
 engine_config:
-  model_id: tinyllama
+  model_id: tinyllamatuned
   # LLM engine keyword arguments passed when constructing the model.
   engine_kwargs:
     trust_remote_code: true
@@ -31,7 +31,7 @@ engine_config:
       YOUR_ENV_VAR: "your_value"
   # Optional configuration for loading the model from S3 instead of Hugging Face Hub. You can use this to speed up downloads or load models not on Hugging Face Hub.
   s3_mirror_config:
-    bucket_uri: s3://release-ry6clz-static-builds/ai-models-tmp/TinyLlama-1.1B-Chat-v1.0/
+    bucket_uri: s3://release-ry6clz-static-builds/tiny-releasetuned-20240404-hf/
   generation:
     # Format to convert user API input into prompts to feed into the LLM engine. {instruction} refers to user-supplied input.
     prompt_format:
