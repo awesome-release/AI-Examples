@@ -2,26 +2,39 @@
 
 ## Basic Flow
 
-### NeMo
+### NeMo-Training
 
 - Convert HF format to NeMo format
 - Run fine tuning
 - Merge fine tuned NeMo model into Pre-trained NeMo model
 - Convert .nemo back to HF
 
-### NeMoFW-Inference
-
-- Convert merged HF model into TensorRT-LLM format
-
 ### TensorRT-LLM
 
-- Convert TensorRT-LLM model into Triton engine
+- Build Triton engine from merged HF model
 
-### Triton
+### TritonServer
 
-- Serve Triton engine
+- Serve Triton engine via Triton Server
 
 ## Fine Tuning
+
+### Configure cluster
+```
+KUBECONFIG=./config-release-ry6clz\ \(3\).yaml kubectl apply -f configmap.yml
+
+cat ~/Downloads/configmap.yml                                                 ──(Wed,Mar13)─┘
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubelet-config-1.21
+  namespace: kube-system
+data:
+  kubelet: |
+    kubeletArguments:
+      runtimeRequestTimeout: "20m"
+```
 
 ### Acquire models
 
@@ -265,13 +278,13 @@ tar -xvf ../tiny_merged_model.nemo -C tiny_merged_model/
 
 ```
 cd /app/tensorrt_llm
-python examples/llama/build.py --model_dir /models/TinyLlama-1.1B-Chat-v1.0/ \
+python examples/llama/build.py --model_dir /models/Llama-2-7b-hf.20240307015747.tuned.merged-hf/ \
   --dtype float16 \
   --remove_input_padding \
   --use_gpt_attention_plugin float16 \
   --enable_context_fmha \
   --use_gemm_plugin float16 \
-  --output_dir /models/tiny_default_engine-fp16-4-gpu/ \
+  --output_dir /models/Llama2-7b-tuned-merged_engine-fp16-4-gpu/ \
   --world_size 4 \
   --tp_size 2 \
   --pp_size 2 \
@@ -339,7 +352,7 @@ python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py --in-file /mode
 
 cp 
 
-python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py --in-file /models/Llama-2-7b-hf.20240307015747.nemo.tuned.nemo --out-file /models/Llama-2-7b-hf.20240307015747.bin --hf-in-path /models/Llama-2-7b-hf/ --hf-out-path /models/Llama-2-7b-hf.20240307015747.tuned.merged-hf/
+python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py --in-file /models/Llama-2-7b-hf.20240307015747.nemo.tuned.nemo --out-file /models/Llama-2-7b-hf.20240307015747.bin --hf-in-path /models/Llama-2-7b-hf/ --hf-out-path /models/Llama-2-7b-hf.20240307015747.tuned.merged-hf/ --cpu-only
 
 ##### Test against tuned+merged engine
 
@@ -449,3 +462,21 @@ https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/core/export.ht
 ```
 tritonserver --model-repository=/models
 ```
+
+# Ray
+
+## Ray-LLM
+
+Install operator
+```
+helm install kuberay-operator kuberay/kuberay-operator --version 1.0.0
+```
+
+Apply k8s manifest
+```
+kubectl apply -f ray/ray-cluster.rayllm-eks.yaml
+```
+
+- Can use ray/multi.yaml as a serve_config/
+- Put ray/models/* into models/
+
