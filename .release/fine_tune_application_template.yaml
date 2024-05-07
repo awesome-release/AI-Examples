@@ -6,10 +6,10 @@ repo_name: releasehub-com/AI-Examples
 resources:
   cpu:
     limits: 48
-    requests: 40
+    requests: 30
   memory:
     limits: 192Gi
-    requests: 190Gi
+    requests: 120Gi
   replicas: 1
 shared_volumes:
   - name: workspace
