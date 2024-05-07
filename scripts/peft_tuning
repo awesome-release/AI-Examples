@@ -120,4 +120,11 @@ echo "===== Successfully merged checkpoint back into original model"
 echo "===== Copying merged nemo file to s3..."
 aws s3 cp $MERGED_MODEL_PATH $RAW_OUTPUT_BUCKET_PATH.tuned.nemo
 
+echo "===== Converting .nemo to HF format"
+python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py \
+  --in-file /workspace/merged.nemo \
+  --out-file $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME.bin \
+  --hf-in-path $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME \
+  --hf-out-path $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME-hf
+
 echo "===== Done fine tuning!"
