@@ -6,6 +6,7 @@ MODELS_ROOT_PATH=${MODELS_ROOT_PATH:-"/bucket/ai-models-tmp"}
 
 # Setting default values for environment variables if not already set
 export PEFT_TUNING_SCRIPT="${PEFT_TUNING_SCRIPT:-/opt/NeMo/examples/nlp/language_modeling/tuning/megatron_gpt_peft_tuning.py}"
+export DATE=$(date +'%Y-%m-%d-%H-%M-%S')
 export CONCAT_SAMPLING_PROBS="${CONCAT_SAMPLING_PROBS:-[1]}"
 export TP_SIZE="${TP_SIZE:-4}"
 export PP_SIZE="${PP_SIZE:-1}"
@@ -38,6 +39,13 @@ echo "NVTE flash attention: $NVTE_FLASH_ATTN"
 echo "NVTE fused attention: $NVTE_FUSED_ATTN"
 echo "NPROC per node: $NPROC_PER_NODE"
 echo "Fine tuned checkpoint output path: $FINE_TUNED_CHECKPOINT_PATH"
+
+# If not passed an s3 url, download the model
+# if [ ... ]
+#   echo "===== Downloading model from HF to S3..."
+#   git lfs install
+#   git clone https://huggingface.co/$MODEL_NAME $MODELS_ROOT
+# fi
 
 # If passed a folder rather than a .nemo file, convert it to nemo
 if [ -d $MODEL ]; then
@@ -121,10 +129,13 @@ echo "===== Copying merged nemo file to s3..."
 aws s3 cp $MERGED_MODEL_PATH $RAW_OUTPUT_BUCKET_PATH.tuned.nemo
 
 echo "===== Converting .nemo to HF format"
-python scripts/nlp_language_modeling/convert_nemo_llama_to_hf.py \
-  --in-file /workspace/merged.nemo \
-  --out-file $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME.bin \
-  --hf-in-path $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME \
-  --hf-out-path $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME-hf
+wget https://raw.githubusercontent.com/NVIDIA/NeMo/main/scripts/checkpoint_converters/convert_llama_nemo_to_hf.py
+python ./convert_llama_nemo_to_hf.py \
+  --input_name_or_path /workspace/merged.nemo \
+  --output_path $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME-$DATE.bin \
+  --hf_input_path $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME \
+  --hf_output_path $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME-$DATE-hf \
+  --input_tokenizer $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME/tokenizer.json \
+  --hf_output_tokenizer $MODELS_ROOT_PATH/$MODEL_FOLDER_NAME-$DATE-hf/tokenizer.json
 
 echo "===== Done fine tuning!"
