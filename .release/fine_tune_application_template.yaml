@@ -4,12 +4,12 @@ context: release-ry6clz
 domain: ai-playground.releaseapp.io
 repo_name: releasehub-com/AI-Examples
 resources:
-  memory:
-    limits: 64Gi
-    requests: 16Gi
   cpu:
-    limits: 128
-    requests: 12
+    limits: 48
+    requests: 40
+  memory:
+    limits: 192Gi
+    requests: 190Gi
   replicas: 1
 shared_volumes:
   - name: workspace
@@ -72,12 +72,6 @@ services:
         mount_path: "/dev/shm"
       - claim: tmp
         mount_path: "/workspace"
-    cpu:
-      limits: 48
-      requests: 12
-    memory:
-      limits: 64Gi
-      requests: 16Gi
   - name: nemofw-inference
     image: nvcr.io/ea-bignlp/ga-participants/nemofw-inference:23.10_fix_v2
     node_selector:
@@ -92,12 +86,6 @@ services:
         mount_path: "/dev/shm"
       - claim: tmp
         mount_path: "/workspace"
-    cpu:
-      limits: 48
-      requests: 12
-    memory:
-      limits: 64Gi
-      requests: 16Gi
 workflows:
   - name: setup
     parallelize:
