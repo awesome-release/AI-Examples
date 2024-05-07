@@ -21,7 +21,12 @@ shared_volumes:
 jobs:
   - name: peft-tuning
     command:
-      - ["curl", "-sfL", "https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/peft_tuning", "|", "bash", "-"]
+      - "curl"
+      - "-sfL"
+      - "https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/peft_tuning"
+      - "|"
+      - "bash"
+      - "-"
     from_services: nemofw-training
     completed_timeout: 10800
     node_selector:
@@ -40,7 +45,12 @@ jobs:
         mount_path: "/workspace"
   - name: triton-export
     command:
-      - ["curl", "-sfL", "https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/export", "|", "bash", "-"]
+      - "curl"
+      - "-sfL"
+      - "https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/export"
+      - "|"
+      - "bash"
+      - "-"
     from_services: nemofw-inference
     completed_timeout: 3600
     node_selector:
