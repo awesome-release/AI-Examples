@@ -20,13 +20,10 @@ shared_volumes:
     type: persistent
 jobs:
   - name: peft-tuning
-    command:
-      - "curl"
-      - "-sfL"
-      - "https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/peft_tuning"
-      - "|"
-      - "bash"
-      - "-"
+    command: ["/bin/sh", "-c"]
+    args: 
+    - |
+      curl -sfL https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/peft_tuning | bash -
     from_services: nemofw-training
     completed_timeout: 10800
     node_selector:
