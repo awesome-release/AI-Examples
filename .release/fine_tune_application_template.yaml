@@ -21,7 +21,7 @@ shared_volumes:
 jobs:
   - name: peft-tuning
     command:
-      - "/bin/peft_tuning"
+      - ["curl", "-sfL", "https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/peft_tuning", "|", "bash", "-"]
     from_services: nemofw-training
     completed_timeout: 10800
     node_selector:
@@ -40,7 +40,7 @@ jobs:
         mount_path: "/workspace"
   - name: triton-export
     command:
-      - "/bin/export"
+      - ["curl", "-sfL", "https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/export", "|", "bash", "-"]
     from_services: nemofw-inference
     completed_timeout: 3600
     node_selector:
@@ -59,13 +59,7 @@ jobs:
         mount_path: "/workspace"
 services:
   - name: nemofw-training
-    image: ai-examples/nemofw-training
-    has_repo: true
-    build:
-      context: "."
-      dockerfile: Dockerfile
-    command:
-      - "/bin/peft_tuning"
+    image: nvcr.io/ea-bignlp/ga-participants/nemofw-training:23.08.03
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
@@ -85,13 +79,7 @@ services:
       limits: 64Gi
       requests: 16Gi
   - name: nemofw-inference
-    image: ai-examples/nemofw-inference
-    has_repo: true
-    build:
-      context: "."
-      dockerfile: Dockerfile.inference
-    command:
-      - "/bin/peft_tuning"
+    image: nvcr.io/ea-bignlp/ga-participants/nemofw-inference:23.10_fix_v2
     node_selector:
       - key: nvidia.com/gpu
         value: "true"
