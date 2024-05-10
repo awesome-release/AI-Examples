@@ -10,6 +10,13 @@ echo "===== DATE: $DATE"
 echo "===== Model location: $MODEL_LOCATION_OR_NAME"
 echo "===== Tuning data: $TUNING_DATASET_LOCATION"
 
+if [[ -z "$HUGGINGFACE_TOKEN" ]]; then
+  echo "===== Hugging Face Token: not found"
+else
+  echo "===== Hugging Face Token: found"
+  huggingface-cli login --token $HUGGINGFACE_TOKEN
+fi
+
 cat > tune.yml <<- EOM
 
 base_model: $MODEL_LOCATION_OR_NAME
