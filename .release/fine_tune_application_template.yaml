@@ -23,7 +23,7 @@ jobs:
     command: ["/bin/sh", "-c"]
     args: 
     - |
-      curl -sfL https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/peft_tuning | bash -
+      curl -sfL https://raw.githubusercontent.com/awesome-release/AI-Examples/main/nemo/peft_tuning | bash -
     from_services: nemofw-training
     completed_timeout: 10800
     node_selector:
@@ -44,7 +44,7 @@ jobs:
     command:
       - "curl"
       - "-sfL"
-      - "https://raw.githubusercontent.com/awesome-release/AI-Examples/main/scripts/export"
+      - "https://raw.githubusercontent.com/awesome-release/AI-Examples/main/nemo/export"
       - "|"
       - "bash"
       - "-"

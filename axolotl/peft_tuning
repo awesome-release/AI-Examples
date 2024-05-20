@@ -3,7 +3,6 @@
 echo "===== Axolotol Fine Tuning run"
 
 export DATE=$(date +'%Y-%m-%d-%H-%M-%S')
-# /bucket/TinyLlama-1.1B-Chat-v1.0/
 
 echo "===== VARS:"
 echo "===== DATE: $DATE"
@@ -107,3 +106,4 @@ accelerate launch -m axolotl.cli.train tune.yml
 
 echo "===== Copying model to bucket"
 cp -R /models/lora-out/ /bucket/axolotol-out-$DATE
+cp tune.yml /bucket/axolotol-out-$DATE

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+pip install datasets transformers evaluate
+conda install libgcc=5.2.0
+python3 tune.py

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --hf-token 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
+tune download meta-llama/Meta-Llama-3-8B --output-dir /tmp/Meta-Llama-3-8B --hf-token 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
+
+tune run --nproc_per_node 4 lora_finetune_distributed --config llama3/8B_lora
