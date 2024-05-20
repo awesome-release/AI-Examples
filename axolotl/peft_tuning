@@ -1,19 +1,33 @@
 #!/bin/bash
 
-echo "===== Axolotol Fine Tuning run"
+printf "\n\n===== Axolotol Fine Tuning run"
 
 export DATE=$(date +'%Y-%m-%d-%H-%M-%S')
 
-echo "===== VARS:"
-echo "===== DATE: $DATE"
-echo "===== Model location: $MODEL_LOCATION_OR_NAME"
-echo "===== Tuning data: $TUNING_DATASET_LOCATION"
+printf "\n\n===== VARS:"
+printf "\n\n===== DATE: $DATE"
+printf "\n\n===== Model location: $MODEL_LOCATION_OR_NAME"
+printf "\n\n===== Tuning data: $TUNING_DATASET_LOCATION"
+export NUM_GPUS=4
+printf "\n\n===== GPUS: $NUM_GPUS"
 
 if [[ -z "$HUGGINGFACE_TOKEN" ]]; then
-  echo "===== Hugging Face Token: not found"
+  printf "\n\n===== Hugging Face Token: not found"
 else
-  echo "===== Hugging Face Token: found"
+  printf "\n\n===== Hugging Face Token: found"
   huggingface-cli login --token $HUGGINGFACE_TOKEN
+fi
+
+export WANDB=""
+
+if [[ -z "$WANDB_TOKEN" ]]; then
+  export WANDB="
+wandb_project: runnable-testing
+wandb_entity:
+wandb_watch:
+wandb_name:
+wandb_log_model:
+"
 fi
 
 cat > tune.yml <<- EOM
@@ -53,11 +67,7 @@ lora_target_modules:
   - k_proj
   - o_proj
 lora_fan_in_fan_out:
-wandb_project: runnable-testing
-wandb_entity:
-wandb_watch:
-wandb_name:
-wandb_log_model:
+$WANDB
 output_dir: /models/lora-out
 gradient_accumulation_steps: 1
 micro_batch_size: 2
@@ -96,14 +106,44 @@ special_tokens:
 
 EOM
 
-echo "===== Preprocessing dataset..."
+printf "\n\n===== Preprocessing dataset..."
 # preprocess datasets - optional but recommended
 CUDA_VISIBLE_DEVICES="" python -m axolotl.cli.preprocess tune.yml
 
-echo "===== Running finetuning..."
+printf "\n\n===== Running finetuning..."
 # finetune lora
-accelerate launch -m axolotl.cli.train tune.yml
+accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.train tune.yml
 
-echo "===== Copying model to bucket"
+printf "\n\n===== Copying model to bucket..."
 cp -R /models/lora-out/ /bucket/axolotol-out-$DATE
 cp tune.yml /bucket/axolotol-out-$DATE
+
+printf "\n\n==== Merging model..."
+python3 --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out"
+
+printf "\n\n===== Copying merged model to bucket..."
+cp -R /models/lora-out/merged /bucket/axolotol-out-$DATE/
+
+# TODO: Do this in a build step first
+printf "\n\n===== Installing ollama..."
+apt-get update && apt-get install -y git python3 python3-pip
+git clone https://github.com/ollama/ollama.git
+cd ollama
+git submodule init
+git submodule update llm/llama.cpp
+python3 -m venv llm/llama.cpp/.venv
+source llm/llama.cpp/.venv/bin/activate
+pip install -r llm/llama.cpp/requirements.txt
+make -C llm/llama.cpp quantize
+
+printf "\n\n==== Converting to ollama format..."
+python llm/llama.cpp/convert.py /models/lora-out/merged --outtype f16 --outfile /models/ollama.bin
+
+printf "\n\n==== Converting to ollama format..."
+llm/llama.cpp/quantize /models/ollama.bin /models/ollama-quantized.bin q4_0
+
+printf "\n\n===== Copying ollama formatted models to bucket..."
+cp -R /models/ollama.bin /bucket/axolotol-out-$DATE/ollama.bin
+cp -R /models/ollama-quantized.bin /bucket/axolotol-out-$DATE/quantized.bin
+
+printf "\n\n===== DONE!"
