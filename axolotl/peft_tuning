@@ -148,9 +148,11 @@ printf "\n\n===== Copying ollama formatted models to bucket...\n"
 cp -R /models/ollama.bin /bucket/axolotol-out-$DATE/ollama.bin
 cp -R /models/ollama-quantized.bin /bucket/axolotol-out-$DATE/ollama-quantized.bin
 
-cat > /bucket/axolotol-out-$DATE/ <<- EOM
-FROM quantized.bin
-TEMPLATE "[INST] {{ .Prompt }} [/INST]"
+cat > /bucket/axolotol-out-$DATE/Modelfile <<- EOM
+FROM ollama.bin
+TEMPLATE "[INST] <<SYS>>{{ .System }}<</SYS>>
+
+{{ .Prompt }} [/INST]"
 
 EOM
 
