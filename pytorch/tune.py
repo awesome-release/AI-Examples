@@ -1,6 +1,3 @@
-#pip install datasets transformers evaluate
-#conda install libgcc=5.2.0
-
 from datasets import load_dataset
 from transformers import AutoTokenizer
 from torch.utils.data import DataLoader
@@ -14,7 +11,7 @@ import evaluate
 def tokenize_function(examples):
     return tokenizer(examples["text"], padding="max_length", truncation=True)
 
-print("==== Loading dataset...")
+print("\n\n==== Loading dataset...")
 dataset = load_dataset("yelp_review_full")
 tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-base-cased")
 tokenized_datasets = dataset.map(tokenize_function, batched=True)
@@ -28,7 +25,7 @@ small_eval_dataset = tokenized_datasets["test"].shuffle(seed=37).select(range(10
 train_dataloader = DataLoader(small_train_dataset, shuffle=True, batch_size=8)
 eval_dataloader = DataLoader(small_eval_dataset, batch_size=8)
 
-print("==== Loading model...")
+print("\n\n==== Loading model...")
 model = AutoModelForSequenceClassification.from_pretrained("google-bert/bert-base-cased", num_labels=5)
 
 optimizer = AdamW(model.parameters(), lr=5e-5)
@@ -44,7 +41,7 @@ model.to(device)
 
 progress_bar = tqdm(range(num_training_steps))
 
-print("==== Tuning model...")
+print("\n\n==== Tuning model...")
 model.train()
 for epoch in range(num_epochs):
     for batch in train_dataloader:
@@ -58,7 +55,7 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         progress_bar.update(1)
 
-print("==== Evaluating results...")
+print("\n\n==== Evaluating results...")
 metric = evaluate.load("accuracy")
 model.eval()
 for batch in eval_dataloader:
@@ -72,4 +69,4 @@ for batch in eval_dataloader:
 
 metric.compute()
 
-print("==== Done!")
+print("\n\n==== Done!")
