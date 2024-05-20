@@ -1,24 +1,24 @@
 #!/bin/bash
 
-printf "\n\n===== Axolotol Fine Tuning run"
+printf "\n\n===== Axolotol Fine Tuning run\n"
 
 export DATE=$(date +'%Y-%m-%d-%H-%M-%S')
 
-printf "\n\n===== VARS:"
-printf "\n\n===== DATE: $DATE"
-printf "\n\n===== Model location: $MODEL_LOCATION_OR_NAME"
-printf "\n\n===== Tuning data: $TUNING_DATASET_LOCATION"
-export NUM_GPUS=4
+printf "\n\n===== Vars:"
+printf "\n=====   DATE: $DATE"
+printf "\n=====   Model location: $MODEL_LOCATION_OR_NAME"
+printf "\n=====   Tuning data: $TUNING_DATASET_LOCATION"
+export NUM_GPUS=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
 printf "\n\n===== GPUS: $NUM_GPUS"
 
 if [[ -z "$HUGGINGFACE_TOKEN" ]]; then
-  printf "\n\n===== Hugging Face Token: not found"
+  printf "\n\n===== Hugging Face Token: not found\n"
 else
-  printf "\n\n===== Hugging Face Token: found"
+  printf "\n\n===== Hugging Face Token: found\n"
   huggingface-cli login --token $HUGGINGFACE_TOKEN
 fi
 
-export WANDB=""
+export WANDB="\n"
 
 if [[ -z "$WANDB_TOKEN" ]]; then
   export WANDB="
@@ -35,52 +35,56 @@ cat > tune.yml <<- EOM
 base_model: $MODEL_LOCATION_OR_NAME
 model_type: LlamaForCausalLM
 tokenizer_type: LlamaTokenizer
+
 load_in_8bit: true
 load_in_4bit: false
 strict: false
-push_dataset_to_hub:
+
 datasets:
   - path: $TUNING_DATASET_LOCATION
     type:
-      system_prompt: ""
+      system_prompt: "\n"
       field_system: system
       field_instruction: input
       field_output: output
-      format: "[INST] {instruction} [/INST]"
-      no_input_format: "[INST] {instruction} [/INST]"
+      format: "[INST] {instruction} [/INST]\n"
+      no_input_format: "[INST] {instruction} [/INST]\n"
+
 dataset_prepared_path:
-val_set_size: 0.02
+val_set_size: 0.05
+output_dir: ./outputs/lora-out
+
+sequence_len: 4096
+sample_packing: true
+pad_to_sequence_len: true
+
 adapter: lora
 lora_model_dir:
-sequence_len: 1024
-sample_packing: false
-eval_sample_packing: false
-lora_r: 8
+lora_r: 32
 lora_alpha: 16
-lora_dropout: 0.0
-lora_target_modules:
-  - gate_proj
-  - down_proj
-  - up_proj
-  - q_proj
-  - v_proj
-  - k_proj
-  - o_proj
+lora_dropout: 0.05
+lora_target_linear: true
 lora_fan_in_fan_out:
-$WANDB
-output_dir: /models/lora-out
-gradient_accumulation_steps: 1
+
+wandb_project:
+wandb_entity:
+wandb_watch:
+wandb_name:
+wandb_log_model:
+
+gradient_accumulation_steps: 4
 micro_batch_size: 2
 num_epochs: 4
 optimizer: adamw_bnb_8bit
-torchdistx_path:
 lr_scheduler: cosine
 learning_rate: 0.0002
+
 train_on_inputs: false
 group_by_length: false
-bf16: false
-fp16: true
+bf16: auto
+fp16:
 tf32: false
+
 gradient_checkpointing: true
 early_stopping_patience:
 resume_from_checkpoint:
@@ -88,44 +92,42 @@ local_rank:
 logging_steps: 1
 xformers_attention:
 flash_attention: true
-gptq_groupsize:
 s2_attention:
-gptq_model_v1:
-warmup_steps: 20
+
+warmup_steps: 10
 evals_per_epoch: 4
+eval_table_size:
+eval_max_new_tokens: 128
 saves_per_epoch: 1
 debug:
 deepspeed:
-weight_decay: 0.1
+weight_decay: 0.0
 fsdp:
 fsdp_config:
 special_tokens:
-  bos_token: "<s>"
-  eos_token: "</s>"
-  unk_token: "<unk>"
 
 EOM
 
-printf "\n\n===== Preprocessing dataset..."
+printf "\n\n===== Preprocessing dataset...\n"
 # preprocess datasets - optional but recommended
 CUDA_VISIBLE_DEVICES="" python -m axolotl.cli.preprocess tune.yml
 
-printf "\n\n===== Running finetuning..."
+printf "\n\n===== Running finetuning...\n"
 # finetune lora
 accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.train tune.yml
 
-printf "\n\n===== Copying model to bucket..."
+printf "\n\n===== Copying model to bucket...\n"
 cp -R /models/lora-out/ /bucket/axolotol-out-$DATE
 cp tune.yml /bucket/axolotol-out-$DATE
 
-printf "\n\n==== Merging model..."
-python3 --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out"
+printf "\n\n==== Merging model...\n"
+python3 --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out\n"
 
-printf "\n\n===== Copying merged model to bucket..."
+printf "\n\n===== Copying merged model to bucket...\n"
 cp -R /models/lora-out/merged /bucket/axolotol-out-$DATE/
 
 # TODO: Do this in a build step first
-printf "\n\n===== Installing ollama..."
+printf "\n\n===== Installing ollama...\n"
 apt-get update && apt-get install -y git python3 python3-pip
 git clone https://github.com/ollama/ollama.git
 cd ollama
@@ -136,14 +138,20 @@ source llm/llama.cpp/.venv/bin/activate
 pip install -r llm/llama.cpp/requirements.txt
 make -C llm/llama.cpp quantize
 
-printf "\n\n==== Converting to ollama format..."
+printf "\n\n==== Converting to ollama format...\n"
 python llm/llama.cpp/convert.py /models/lora-out/merged --outtype f16 --outfile /models/ollama.bin
 
-printf "\n\n==== Converting to ollama format..."
+printf "\n\n==== Converting to ollama format...\n"
 llm/llama.cpp/quantize /models/ollama.bin /models/ollama-quantized.bin q4_0
 
-printf "\n\n===== Copying ollama formatted models to bucket..."
+printf "\n\n===== Copying ollama formatted models to bucket...\n"
 cp -R /models/ollama.bin /bucket/axolotol-out-$DATE/ollama.bin
-cp -R /models/ollama-quantized.bin /bucket/axolotol-out-$DATE/quantized.bin
+cp -R /models/ollama-quantized.bin /bucket/axolotol-out-$DATE/ollama-quantized.bin
 
-printf "\n\n===== DONE!"
+cat > /bucket/axolotol-out-$DATE/ <<- EOM
+FROM quantized.bin
+TEMPLATE "[INST] {{ .Prompt }} [/INST]"
+
+EOM
+
+printf "\n\n===== DONE!\n\n"
