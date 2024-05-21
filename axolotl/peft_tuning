@@ -108,6 +108,11 @@ special_tokens:
 
 EOM
 
+printf "\n\n===== Logging settings to bucket...\n"
+mkdir /bucket/axolotol-out-$DATE
+cp tune.yml /bucket/axolotol-out-$DATE/
+printenv > /bucket/axolotol-out-$DATE/.env
+
 printf "\n\n===== Preprocessing dataset...\n"
 # preprocess datasets - optional but recommended
 CUDA_VISIBLE_DEVICES="" python -m axolotl.cli.preprocess tune.yml
@@ -117,9 +122,7 @@ printf "\n\n===== Running finetuning...\n"
 accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.train tune.yml
 
 printf "\n\n===== Copying model to bucket...\n"
-cp -R /models/lora-out/ /bucket/axolotol-out-$DATE
-cp tune.yml /bucket/axolotol-out-$DATE
-printenv > /bucket/axolotol-out-$DATE/.env
+cp -R /models/lora-out/ /bucket/axolotol-out-$DATE/
 
 printf "\n\n==== Merging model...\n"
 python3 --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out\n"
@@ -142,7 +145,7 @@ make -C llm/llama.cpp quantize
 printf "\n\n==== Converting to ollama format...\n"
 python llm/llama.cpp/convert.py /models/lora-out/merged --outtype f16 --outfile /models/ollama.bin
 
-printf "\n\n==== Converting to ollama format...\n"
+printf "\n\n==== Quantizing model...\n"
 llm/llama.cpp/quantize /models/ollama.bin /models/ollama-quantized.bin q4_0
 
 printf "\n\n===== Copying ollama formatted models to bucket...\n"
