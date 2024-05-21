@@ -130,7 +130,7 @@ printf "\n\n===== Copying model to bucket...\n"
 cp -R /models/lora-out/ /bucket/axolotol-out-$DATE/
 
 printf "\n\n==== Merging model...\n"
-accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out\n"
+accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out"
 
 printf "\n\n===== Copying merged model to bucket...\n"
 cp -R /models/lora-out/merged /bucket/axolotol-out-$DATE/
