@@ -55,7 +55,7 @@ val_set_size: 0.05
 output_dir: ./outputs/lora-out
 
 sequence_len: 4096
-sample_packing: true
+sample_packing: false
 pad_to_sequence_len: true
 
 adapter: lora
@@ -115,18 +115,22 @@ cp tune.yml /bucket/axolotol-out-$DATE/
 printenv > /bucket/axolotol-out-$DATE/.env
 
 printf "\n\n===== Preprocessing dataset...\n"
-# preprocess datasets - optional but recommended
-CUDA_VISIBLE_DEVICES="" python -m axolotl.cli.preprocess tune.yml
+accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.preprocess tune.yml
 
 printf "\n\n===== Running finetuning...\n"
 # finetune lora
 accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.train tune.yml
 
+if [ ! -d /models/lora-out ]; then
+  printf "\n\n===== Fine tuning failed, exiting.\n"
+  exit 1
+fi
+
 printf "\n\n===== Copying model to bucket...\n"
 cp -R /models/lora-out/ /bucket/axolotol-out-$DATE/
 
 printf "\n\n==== Merging model...\n"
-python3 --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out\n"
+accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out\n"
 
 printf "\n\n===== Copying merged model to bucket...\n"
 cp -R /models/lora-out/merged /bucket/axolotol-out-$DATE/
