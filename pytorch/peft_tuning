@@ -1,5 +1,5 @@
 #!/bin/bash
 
 pip install datasets transformers evaluate
-conda install libgcc=5.2.0
+wget https://raw.githubusercontent.com/awesome-release/AI-Examples/main/pytorch/tune.py
 python3 tune.py
