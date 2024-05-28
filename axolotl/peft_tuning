@@ -165,4 +165,14 @@ TEMPLATE "[INST] <<SYS>>{{ .System }}<</SYS>>
 
 EOM
 
+if [[ -z "${OLLAMA_BASE_URL}" ]]; then
+  echo ""
+else
+  echo "\n\n===== Creating model in Ollama server $OLLAMA_BASE_URL"
+  curl ${OLLAMA_BASE_URL}api/create -d '{
+    "name": "axolotol-out-2024-05-22-16-18-23",
+    "modelfile": "FROM /bucket/axolotol-out-2024-05-22-16-18-22/ollama.bin\nTEMPLATE \"[INST] <<SYS>>{{ .System }}<</SYS>>\n{{ .Prompt }} [/INST]\""
+  }'
+fi
+
 printf "\n\n===== DONE!\n\n"
