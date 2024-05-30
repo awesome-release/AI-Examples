@@ -18,9 +18,13 @@ else
   huggingface-cli login --token $HUGGINGFACE_TOKEN
 fi
 
-export WANDB="\n"
-
 if [[ -z "$WANDB_TOKEN" ]]; then
+  printf "\n\n===== WandB Token: not found\n"
+  export WANDB="
+wandb_mode: disabled
+"
+else
+  printf "\n\n===== WandB Token: found\n"
   export WANDB="
 wandb_project: runnable-testing
 wandb_entity:
