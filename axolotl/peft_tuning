@@ -148,7 +148,7 @@ pip install -r llm/llama.cpp/requirements.txt
 make -C llm/llama.cpp quantize
 
 printf "\n\n==== Converting to ollama format...\n"
-python llm/llama.cpp/convert.py /models/lora-out/merged --outtype f16 --outfile /models/ollama.bin
+python llm/llama.cpp/examples/convert-legacy-llama.py /models/lora-out/merged --outtype f16 --outfile /models/ollama.bin
 
 printf "\n\n==== Quantizing model...\n"
 llm/llama.cpp/quantize /models/ollama.bin /models/ollama-quantized.bin q4_0
