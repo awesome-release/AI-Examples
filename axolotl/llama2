@@ -114,12 +114,18 @@ mkdir /bucket/axolotol-out-$DATE
 cp tune.yml /bucket/axolotol-out-$DATE/
 printenv > /bucket/axolotol-out-$DATE/.env
 
+GPU_FLAGS=""
+if (( $NUM_GPUS > 1 )); then
+    GPU_FLAGS="--multi_gpu --num_processes ${NUM_GPUS}"
+fi
+echo $GPU_FLAGS
+
 printf "\n\n===== Preprocessing dataset...\n"
-accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.preprocess tune.yml
+accelerate launch $GPU_FLAGS -m axolotl.cli.preprocess tune.yml
 
 printf "\n\n===== Running finetuning...\n"
 # finetune lora
-accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.train tune.yml
+accelerate launch $GPU_FLAGS -m axolotl.cli.train tune.yml
 
 if [ ! -d /models/lora-out ]; then
   printf "\n\n===== Fine tuning failed, exiting.\n"
@@ -130,7 +136,7 @@ printf "\n\n===== Copying model to bucket...\n"
 cp -R /models/lora-out/ /bucket/axolotol-out-$DATE/
 
 printf "\n\n==== Merging model...\n"
-accelerate launch --multi_gpu --num_processes $NUM_GPUS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out"
+accelerate launch $GPU_FLAGS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out"
 
 printf "\n\n===== Copying merged model to bucket...\n"
 cp -R /models/lora-out/merged /bucket/axolotol-out-$DATE/
