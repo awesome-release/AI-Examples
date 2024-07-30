@@ -110,9 +110,9 @@ special_tokens:
 EOM
 
 printf "\n\n===== Logging settings to bucket...\n"
-mkdir /bucket/axolotol-out-$DATE
-cp tune.yml /bucket/axolotol-out-$DATE/
-printenv > /bucket/axolotol-out-$DATE/.env
+mkdir $OUT_DIR/axolotol-out-$DATE
+cp tune.yml $OUT_DIR/axolotol-out-$DATE/
+printenv > $OUT_DIR/axolotol-out-$DATE/.env
 
 GPU_FLAGS=""
 if (( $NUM_GPUS > 1 )); then
@@ -133,13 +133,13 @@ if [ ! -d /models/lora-out ]; then
 fi
 
 printf "\n\n===== Copying model to bucket...\n"
-cp -R /models/lora-out/ /bucket/axolotol-out-$DATE/
+cp -R /models/lora-out/ $OUT_DIR/axolotol-out-$DATE/
 
 printf "\n\n==== Merging model...\n"
 accelerate launch $GPU_FLAGS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out"
 
 printf "\n\n===== Copying merged model to bucket...\n"
-cp -R /models/lora-out/merged /bucket/axolotol-out-$DATE/
+cp -R /models/lora-out/merged $OUT_DIR/axolotol-out-$DATE/
 
 # TODO: Do this in a build step first
 printf "\n\n===== Installing ollama...\n"
@@ -162,10 +162,10 @@ printf "\n\n==== Quantizing model...\n"
 llm/llama.cpp/quantize /models/ollama.bin /models/ollama-quantized.bin q4_0
 
 printf "\n\n===== Copying ollama formatted models to bucket...\n"
-cp -R /models/ollama.bin /bucket/axolotol-out-$DATE/ollama.bin
-cp -R /models/ollama-quantized.bin /bucket/axolotol-out-$DATE/ollama-quantized.bin
+cp -R /models/ollama.bin $OUT_DIR/axolotol-out-$DATE/ollama.bin
+cp -R /models/ollama-quantized.bin $OUT_DIR/axolotol-out-$DATE/ollama-quantized.bin
 
-cat > /bucket/axolotol-out-$DATE/Modelfile <<- EOM
+cat > $OUT_DIR/axolotol-out-$DATE/Modelfile <<- EOM
 FROM ollama.bin
 TEMPLATE "[INST] <<SYS>>{{ .System }}<</SYS>>
 
@@ -179,7 +179,7 @@ else
   echo "\n\n===== Creating model in Ollama server $OLLAMA_BASE_URL"
   curl ${OLLAMA_BASE_URL}api/create -d "{
     \"name\": \"axolotol-out-$DATE\",
-    \"modelfile\": \"FROM /bucket/axolotol-out-$DATE/ollama.bin\nTEMPLATE \"[INST] <<SYS>>{{ .System }}<</SYS>>\n{{ .Prompt }} [/INST]\"\"
+    \"modelfile\": \"FROM $OUT_DIR/axolotol-out-$DATE/ollama.bin\nTEMPLATE \"[INST] <<SYS>>{{ .System }}<</SYS>>\n{{ .Prompt }} [/INST]\"\"
   }"
 fi
 
