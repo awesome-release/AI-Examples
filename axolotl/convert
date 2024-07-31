@@ -1,0 +1,31 @@
+#!/bin/bash
+
+cp -R $OUT_DIR/axolotol-out-$DATE/merged/ /models/
+
+printf "\n\n==== Converting to ollama format...\n"
+python llm/llama.cpp/examples/convert-legacy-llama.py /models/merged --outtype f16 --outfile /models/ollama.bin
+
+printf "\n\n==== Quantizing model...\n"
+llm/llama.cpp/quantize /models/ollama.bin /models/ollama-quantized.bin q4_0
+
+printf "\n\n===== Copying ollama formatted models to bucket...\n"
+cp -R /models/ollama.bin $OUT_DIR/axolotol-out-$DATE/ollama.bin
+cp -R /models/ollama-quantized.bin $OUT_DIR/axolotol-out-$DATE/ollama-quantized.bin
+
+cat > $OUT_DIR/axolotol-out-$DATE/Modelfile <<- EOM
+FROM ollama.bin
+TEMPLATE "[INST] <<SYS>>{{ .System }}<</SYS>>
+{{ .Prompt }} [/INST]"
+EOM
+
+if [[ -z "${OLLAMA_BASE_URL}" ]]; then
+  echo ""
+else
+  echo "\n\n===== Creating model in Ollama server $OLLAMA_BASE_URL"
+  curl ${OLLAMA_BASE_URL}api/create -d "{
+    \"name\": \"axolotol-out-$DATE\",
+    \"modelfile\": \"FROM $OUT_DIR/axolotol-out-$DATE/ollama.bin\nTEMPLATE \"[INST] <<SYS>>{{ .System }}<</SYS>>\n{{ .Prompt }} [/INST]\"\"
+  }"
+fi
+
+printf "\n\n===== DONE!\n\n"
