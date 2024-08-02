@@ -114,9 +114,9 @@ special_tokens:
 EOM
 
 printf "\n\n===== Logging settings to bucket...\n"
-mkdir /bucket/axolotol-out-$DATE
-cp tune.yml /bucket/axolotol-out-$DATE/
-printenv > /bucket/axolotol-out-$DATE/.env
+mkdir /storage/bucket/axolotol-out-$DATE
+cp tune.yml /storage/bucket/axolotol-out-$DATE/
+printenv > /storage/bucket/axolotol-out-$DATE/.env
 
 GPU_FLAGS=""
 if (( $NUM_GPUS > 1 )); then
@@ -135,11 +135,5 @@ if [ ! -d /models/lora-out ]; then
   exit 1
 fi
 
-printf "\n\n===== Copying model to bucket...\n"
-cp -R /models/lora-out/ /bucket/axolotol-out-$DATE/
-
 printf "\n\n==== Merging model...\n"
 accelerate launch $GPU_FLAGS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out"
-
-printf "\n\n===== Copying merged model to bucket...\n"
-cp -R /models/lora-out/merged /bucket/axolotol-out-$DATE/
