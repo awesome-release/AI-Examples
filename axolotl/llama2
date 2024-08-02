@@ -130,5 +130,7 @@ fi
 
 printf "\n\n==== Merging model...\n"
 accelerate launch $GPU_FLAGS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/storage/lora-out"
+wget https://raw.githubusercontent.com/awesome-release/AI-Examples/main/axolotl/convert
+mv convert /storage/
 
 printf "\n\n===== Tuning done!"

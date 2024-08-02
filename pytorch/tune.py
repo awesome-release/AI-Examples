@@ -7,13 +7,14 @@ from transformers import get_scheduler
 import torch
 from tqdm.auto import tqdm
 import evaluate
+import os
 
 def tokenize_function(examples):
     return tokenizer(examples["text"], padding="max_length", truncation=True)
 
 print("\n\n==== Loading dataset...")
-dataset = load_dataset("yelp_review_full")
-tokenizer = AutoTokenizer.from_pretrained("google-bert/bert-base-cased")
+dataset = load_dataset("json", data_files=os.environ['TUNING_DATASET_LOCATION'])
+tokenizer = AutoTokenizer.from_pretrained(os.environ['MODEL_LOCATION_OR_NAME'])
 tokenized_datasets = dataset.map(tokenize_function, batched=True)
 
 tokenized_datasets = tokenized_datasets.remove_columns(["text"])
@@ -26,7 +27,7 @@ train_dataloader = DataLoader(small_train_dataset, shuffle=True, batch_size=8)
 eval_dataloader = DataLoader(small_eval_dataset, batch_size=8)
 
 print("\n\n==== Loading model...")
-model = AutoModelForSequenceClassification.from_pretrained("google-bert/bert-base-cased", num_labels=5)
+model = AutoModelForSequenceClassification.from_pretrained(os.environ['MODEL_NAME_OR_LOCATION'])
 
 optimizer = AdamW(model.parameters(), lr=5e-5)
 
@@ -68,5 +69,9 @@ for batch in eval_dataloader:
     metric.add_batch(predictions=predictions, references=batch["labels"])
 
 metric.compute()
+
+print("\n\n==== Saving model...")
+
+torch.save(model, "out")
 
 print("\n\n==== Done!")
