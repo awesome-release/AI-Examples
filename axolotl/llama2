@@ -114,7 +114,6 @@ GPU_FLAGS=""
 if (( $NUM_GPUS > 1 )); then
     GPU_FLAGS="--multi_gpu --num_processes ${NUM_GPUS}"
 fi
-echo $GPU_FLAGS
 
 printf "\n\n===== Preprocessing dataset...\n"
 accelerate launch $GPU_FLAGS -m axolotl.cli.preprocess tune.yml
