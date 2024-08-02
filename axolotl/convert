@@ -11,7 +11,13 @@ printf "\n\n===== Copying merged model to bucket...\n"
 cp -R /storage/lora-out/merged $OUT_DIR/axolotol-out-$DATE/
 
 printf "\n\n==== Converting to ollama format...\n"
-python3 examples/convert_legacy_llama.py /storage/lora-out/merged --outtype f16 --outfile /storage/ollama.bin
+if [[ $MODEL_TYPE == "llama2" ]]; then
+  python3 examples/convert_legacy_llama.py /storage/lora-out/merged --outtype f16 --outfile /storage/ollama.bin
+elif [[ $MODEL_TYPE == "llama3" ]]; then
+  python3 convert_lora_to_gguf.py /storage/lora-out/merged --outtype f16 --outfile /storage/ollama.bin
+else
+  echo "Unsupported model type: $MODEL_TYPE"
+fi
 
 printf "\n\n==== Quantizing model...\n"
 ./llama-quantize /storage/ollama.bin /storage/ollama-quantized.bin q4_0
