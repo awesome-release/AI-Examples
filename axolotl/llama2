@@ -2,10 +2,7 @@
 
 printf "\n\n===== Axolotol Fine Tuning run\n"
 
-export DATE=$(date +'%Y-%m-%d-%H-%M-%S')
-
 printf "\n\n===== Vars:"
-printf "\n=====   DATE: $DATE"
 printf "\n=====   Model location: $MODEL_LOCATION_OR_NAME"
 printf "\n=====   Tuning data: $TUNING_DATASET_LOCATION"
 export NUM_GPUS=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
@@ -56,7 +53,7 @@ datasets:
 
 dataset_prepared_path:
 val_set_size: 0.05
-output_dir: /models/lora-out
+output_dir: /storage/lora-out
 
 sequence_len: 4096
 sample_packing: false
@@ -110,9 +107,8 @@ special_tokens:
 EOM
 
 printf "\n\n===== Logging settings to bucket...\n"
-mkdir $OUT_DIR/axolotol-out-$DATE
-cp tune.yml $OUT_DIR/axolotol-out-$DATE/
-printenv > $OUT_DIR/axolotol-out-$DATE/.env
+cp tune.yml /storage/
+printenv > /storage/.env
 
 GPU_FLAGS=""
 if (( $NUM_GPUS > 1 )); then
@@ -127,18 +123,12 @@ printf "\n\n===== Running finetuning...\n"
 # finetune lora
 accelerate launch $GPU_FLAGS -m axolotl.cli.train tune.yml
 
-if [ ! -d /models/lora-out ]; then
+if [ ! -d /storage/lora-out ]; then
   printf "\n\n===== Fine tuning failed, exiting.\n"
   exit 1
 fi
 
-printf "\n\n===== Copying model to bucket...\n"
-cp -R /models/lora-out/ $OUT_DIR/axolotol-out-$DATE/
-
 printf "\n\n==== Merging model...\n"
-accelerate launch $GPU_FLAGS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/models/lora-out"
-
-printf "\n\n===== Copying merged model to bucket...\n"
-cp -R /models/lora-out/merged $OUT_DIR/axolotol-out-$DATE/
+accelerate launch $GPU_FLAGS -m axolotl.cli.merge_lora tune.yml --lora_model_dir="/storage/lora-out"
 
 printf "\n\n===== Tuning done!"
