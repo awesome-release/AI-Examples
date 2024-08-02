@@ -11,7 +11,7 @@ printf "\n\n===== Copying merged model to bucket...\n"
 cp -R /storage/lora-out/merged $OUT_DIR/axolotol-out-$DATE/
 
 printf "\n\n==== Converting to ollama format...\n"
-python3 examples/convert_legacy_llama.py /storage/merged --outtype f16 --outfile /storage/ollama.bin
+python3 examples/convert_legacy_llama.py /storage/lora-out/merged --outtype f16 --outfile /storage/ollama.bin
 
 printf "\n\n==== Quantizing model...\n"
 ./llama-quantize /storage/ollama.bin /storage/ollama-quantized.bin q4_0
