@@ -13,7 +13,11 @@ def tokenize_function(examples):
     return tokenizer(examples["text"], padding="max_length", truncation=True)
 
 print("\n\n==== Loading dataset...")
-dataset = load_dataset("json", data_files=os.environ['TUNING_DATASET_LOCATION'])
+if os.environ['TUNING_DATASET_LOCATION'].endswith(".json"):
+    dataset = load_dataset("json", data_files=os.environ['TUNING_DATASET_LOCATION'])
+else:
+    dataset = load_dataset(os.environ['TUNING_DATASET_LOCATION'])
+
 tokenizer = AutoTokenizer.from_pretrained(os.environ['MODEL_LOCATION_OR_NAME'])
 tokenized_datasets = dataset.map(tokenize_function, batched=True)
 
