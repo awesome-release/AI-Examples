@@ -13,7 +13,7 @@ def tokenize_function(examples):
     return tokenizer(examples["text"], padding="max_length", truncation=True)
 
 print("\n\n==== Loading dataset...")
-if os.environ['TUNING_DATASET_LOCATION'].endswith(".json"):
+if os.environ['TUNING_DATASET_LOCATION'].endswith(".json") or os.environ['TUNING_DATASET_LOCATION'].endswith(".jsonl"):
     dataset = load_dataset("json", data_files=os.environ['TUNING_DATASET_LOCATION'])
 else:
     dataset = load_dataset(os.environ['TUNING_DATASET_LOCATION'])
@@ -31,7 +31,7 @@ train_dataloader = DataLoader(small_train_dataset, shuffle=True, batch_size=8)
 eval_dataloader = DataLoader(small_eval_dataset, batch_size=8)
 
 print("\n\n==== Loading model...")
-model = AutoModelForSequenceClassification.from_pretrained(os.environ['MODEL_NAME_OR_LOCATION'])
+model = AutoModelForSequenceClassification.from_pretrained(os.environ['MODEL_LOCATION_OR_NAME'])
 
 optimizer = AdamW(model.parameters(), lr=5e-5)
 
