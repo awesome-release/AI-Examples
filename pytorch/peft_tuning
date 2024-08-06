@@ -2,9 +2,9 @@
 
 pip install datasets transformers evaluate
 wget https://raw.githubusercontent.com/awesome-release/AI-Examples/main/pytorch/tune.py
-export MODEL_LOCATION_OR_NAME="google-bert/bert-base-uncased"
-export TUNING_DATASET_LOCATION="yelp_review_full"
+
 python3 tune.py || true
 
 # Allow logs to finish outputting.
 sleep 30
+echo "Done."
